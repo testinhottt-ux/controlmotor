@@ -292,3 +292,14 @@ bom.csv
 
 ### Dependências
 - `esquema.svg` (embutido inline — sem dependência externa em runtime).
+
+---
+
+## Arquivo: controlmotor-dual.html (atualização 2026-08-15 — esquema profissional)
+
+### Mudança
+- Novo card "🔌 Esquema Profissional — Inversor BLDC Industrial (48V / 30A)" com SVG inline (`esquemaprofisionalsvg`, 571 linhas) inserido após o card do esquema anterior — sempre visível, self-contained.
+- Fonte do SVG: `esquemaprofisionalsvg` (arquivo de projeto, sem extensão). Correções aplicadas no fonte: defs `tvs_v`/`inductor_h` adicionados; fios de fase estendidos ao bornes.
+
+### Dependências
+- `esquemaprofisionalsvg` → `controlmotor-dual.html` (embed inline; runtime sem dependência externa).

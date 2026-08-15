@@ -388,3 +388,31 @@ kicad /home/teste/controlmotor/schematic.kicad_sch &
 **Correção permanente**: re-verificar balanceamento (`<div>` vs `</div>`) antes/depois de qualquer replace de bloco HTML; fechar seções pai (card PID, realMode) ANTES do novo card e manter o fechamento do container.
 
 **Lição**: anchor com múltiplos fechamentos = contabilizar TODOS os closes que ele continha no novo texto.
+
+---
+
+## [ERRO 9] SVG referenciando `<use>` de defs inexistentes (TVS e indutores invisíveis)
+
+**Data**: 2026-08-15
+**Severity**: MÉDIO
+**Status**: RESOLVIDO
+
+### Sintoma
+Em `esquemaprofisionalsvg`, os símbolos TVS e indutores não renderizavam: `<use href="#tvs_v">` (linha 151) e `<use href="#inductor_h">` (linhas 529/538/547) apontavam para defs que não existiam no `<defs>` (só havia `n_mosfet`, `resistor_h`, `resistor_v`, `cap_v`, `cap_pol_v`, `diode_v`).
+
+### Causa-Raiz
+SVG editado manualmente: símbolos usados no layout nunca foram definidos como templates. Browsers ignoram `<use>` para alvo inexistente (sem erro, sem render).
+
+### Correção Permanente
+1. Adicionados defs `tvs_v` (vertical, 50u: placa + triângulo + setas de breakdown) e `inductor_h` (57u, 4 voltas C).
+2. Fios de roteamento das fases corrigidos de `L -10,100` para `L 0,100` (paravam 10px antes dos bornes).
+3. Check automatizado: parse XML + interseção entre hrefs de `<use>` e ids definidos.
+
+### Validação
+```bash
+python3 -c "import xml.etree.ElementTree as ET; ..."  # FALTANDO: nenhum
+# Render cairosvg + 13 checks estruturais de pixels: todos OK
+```
+
+### Lição
+**Todo SVG com `<defs>` + `<use>` precisa de check de referência cruzada**: extrair `id` de todos os elementos e comparar com todos os `href` de `<use>` antes de considerar pronto.

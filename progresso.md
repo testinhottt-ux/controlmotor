@@ -227,3 +227,20 @@ ls gerbers/*.gbr | wc -l  # ≥ 10 (layer F.Cu, B.Cu, F.Mask, B.Mask, etc)
 - **Push GitHub**: commit + push para origin/main (testinhottt-ux/controlmotor).
 
 **Lição**: ao inserir bloco HTML via string replace, conferir o balanceamento de tags ANTES e DEPOIS (o anchor substituído continha `</div>` de fechamento — substituição perdeu 1 fechamento).
+
+---
+
+## Tarefa: Esquema profissional embutido na página + push GitHub [CONCLUÍDA ✅ 2026-08-15]
+
+**Entregável**: `esquemaprofisionalsvg` (SVG 1600×1000, "Esquema Profissional — Inversor BLDC Industrial 48V/30A") embutido inline em `controlmotor-dual.html` como novo card (após o card do esquema anterior). Conteúdo: entrada XT90 + fusível 50A + pré-carga + EMI choke + TVS, chopper de freio reostático (R_brake 10R 100W, D_brake, Q_brake IRFB4110), DRV8302, ESP32-WROOM-32E, ISO1050 CAN isolado, ponte trifásica U/V/W com snubbers RC + bootstrap + shunts Kelvin, filtros de saída com indutores e bornes.
+
+**Correções aplicadas ao SVG antes de embutir** (ver ERRO 9):
+- Defs faltantes adicionados: `tvs_v` e `inductor_h` (referenciados via `<use>` mas não definidos → não renderizavam).
+- Fios de roteamento das fases estendidos de `L -10,100` para `L 0,100` (paravam 10px antes dos filtros).
+
+**Verificação**:
+- XML válido; todos os `<use>` resolvem (`FALTANDO: nenhum`).
+- Render standalone (cairosvg 1600×1000): 13/13 checks estruturais de pixels OK (TVS, indutores U/V/W, barramentos VDC/GND, XT90, DRV8302, fases, bornes, ISO1050, info block).
+- Página: divs 261 abertos / 261 fechados; `node --check` JS inline OK (43462 chars).
+- Screenshot headless (chromium 1400×5600): cor exclusiva do novo card (CAN verde #047857) presente na página.
+- **Push GitHub**: commit + push para origin/main (testinhottt-ux/controlmotor).
