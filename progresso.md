@@ -202,3 +202,14 @@ ls gerbers/*.gbr | wc -l  # ≥ 10 (layer F.Cu, B.Cu, F.Mask, B.Mask, etc)
 - .gitignore exclui `firmware/.pio/` (44MB de build), logs SPICE, imagens/PDF gerados e credenciais.
 - **Verificação**: push com exit 0; repositório confirmado via API GitHub (public, default_branch=main).
 - Token usado via `/home/teste/propectordenegocios/token` (removido do remote URL após push — sem segredo persistido).
+
+---
+
+## Tarefa: GitHub Pages para controlmotor-dual.html [CONCLUÍDA ✅ 2026-08-15]
+
+- GitHub Pages habilitado no repo `controlmotor` (branch main, path /).
+- **`.nojekyll` adicionado** (Jekyll travava o build por causa dos ~40 .md) → build publicado.
+- `index.html` adicionado (redireciona para `controlmotor-dual.html`).
+- **Links verificados (HTTP 200)**:
+  - Visualização: https://testinhottt-ux.github.io/controlmotor/controlmotor-dual.html
+  - Root: https://testinhottt-ux.github.io/controlmotor/
