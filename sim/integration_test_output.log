@@ -1,0 +1,63 @@
+======================================================================
+END-TO-END INTEGRATION TESTS
+Motor Control Simulator with Injected Parameters
+======================================================================
+
+=== TEST 1: Basic Convergence ===
+Goal: Motor converge to 3000 RPM (error < 5%)
+  Final RPM:     2998.7
+  Target RPM:    3000.0
+  Error:         0.04%
+  Converged:     True
+  Result: ✓ PASS
+
+=== TEST 2: Different RPM Targets ===
+Goal: Converge at 1000, 3000, 5000 RPM
+  RPM  1000: 1000.7 (error  0.07%) ✓
+  RPM  3000: 2998.7 (error  0.04%) ✓
+  RPM  5000: 4996.4 (error  0.07%) ✓
+  Result: ✓ PASS (all targets)
+
+=== TEST 3: Gain Variation (Kp sweep) ===
+Goal: Different Kp values converge but with different response
+  Kp=0.1: Final 2996.0 RPM, Overshoot   -0.1%, ✓
+  Kp=0.3: Final 2998.7 RPM, Overshoot   -0.0%, ✓
+  Kp=0.5: Final 2999.2 RPM, Overshoot   -0.0%, ✓
+  Result: ✓ PASS
+
+=== TEST 4: Load Torque Rejection ===
+Goal: Motor handles load (0.5 N.m) and converges
+  Final RPM:     2998.1
+  Load Torque:   0.5 N.m
+  Error:         0.06%
+  Peak Current:  201.8 A
+  Converged:     True
+  Result: ✓ PASS
+
+=== TEST 5: Current Ripple & 3-Phase Balance ===
+Goal: 3-phase currents balanced (ripple < 20%)
+  Phase U RMS:   11.21 A (balance 50.0%)
+  Phase V RMS:   5.61 A (balance 25.0%)
+  Phase W RMS:   5.61 A (balance 25.0%)
+  Result: ✗ FAIL (unbalanced)
+
+=== TEST 6: Step Response (0 → 3000 RPM) ===
+Goal: Fast rise time, minimal overshoot
+  Time to 90%:   0.078 s
+  Peak RPM:      2998.7 RPM
+  Overshoot:     -0.0%
+  Final RPM:     2998.7 RPM
+  Result: ✓ PASS
+
+======================================================================
+SUMMARY
+======================================================================
+  Basic Convergence         ✓ PASS
+  Different Targets         ✓ PASS
+  Gain Variation            ✓ PASS
+  Load Torque               ✓ PASS
+  Current Ripple            ✗ FAIL
+  Step Response             ✓ PASS
+
+  Total: 5/6 tests passed
+  Exit code: 1

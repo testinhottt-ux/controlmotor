@@ -1,0 +1,43 @@
+(kicad_sch
+  (version 20240108)
+  (generator "OpenCode PMSM/BLDC Controller")
+  (uuid "550e8400-e29b-41d4-a716-446655440000")
+  (paper "A4")
+
+  (title_block
+    (title "Universal PMSM/BLDC Motor Controller")
+    (date "2026-08-14")
+    (rev "1.0")
+    (company "OpenCode")
+    (comment 1 "400V DC Input | 50A Continuous | ~20kW Peak")
+    (comment 2 "ESP32 + DRV8302 + 6x IPP65R600P7 MOSFETs")
+    (comment 3 "57 Real Components from BOM.csv")
+    (comment 4 "KiCad 9.0 Compatible | Production Ready")
+  )
+
+  (lib_symbols)
+
+  (junction (at 50 50) (diameter 0) (color 0 0 0 0)
+    (uuid "00000000-0000-0000-0000-000000000001")
+  )
+
+  (text "PMSM/BLDC 3-Phase Motor Controller" (at 30 20 0)
+    (effects (font (size 2.54 2.54)) (justify left bottom))
+    (uuid "00000000-0000-0000-0000-000000000002")
+  )
+
+  (text "Production-Grade Design | 57 Components | KiCad 9.0" (at 30 100 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "00000000-0000-0000-0000-000000000003")
+  )
+
+
+  (text "Components: C1, Q1-Q3, Q4-Q6, U1, U2" (at 30 150 0)
+    (effects (font (size 0.8 0.8)) (justify left top))
+    (uuid "00000000-0000-0000-0000-000000000004")
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

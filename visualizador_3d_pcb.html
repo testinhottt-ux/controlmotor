@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador 3D - Placa PCB Controladora PMSM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        #canvas-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            min-width: 600px;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls-panel {
+            width: 300px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow-y: auto;
+            max-height: 800px;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .control-group:last-child {
+            border-bottom: none;
+        }
+        
+        .control-group h3 {
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        
+        .slider-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .component-list {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .component-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .component-item:last-child {
+            border-bottom: none;
+        }
+        
+        .component-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .component-name {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .component-value {
+            color: #999;
+            font-size: 0.8em;
+        }
+        
+        footer {
+            background: rgba(0,0,0,0.2);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            max-width: 250px;
+            z-index: 10;
+        }
+        
+        @media (max-width: 1400px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            #canvas-container {
+                min-width: 100%;
+                height: 500px;
+            }
+            
+            .controls-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+        
+        .legend {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .legend h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔧 Visualizador 3D — Placa PCB Controladora PMSM</h1>
+        <p>Inversor 3-Fases | 400V | 50A | Interativo em Tempo Real</p>
+    </header>
+    
+    <div class="container">
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div class="instructions">
+                <strong>Controles:</strong><br>
+                🖱️ Arraste para rotacionar<br>
+                🔍 Scroll para zoom<br>
+                ➡️ Use os botões abaixo
+            </div>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>🎬 Visualização</h3>
+                <button class="btn" onclick="setView('top')">Vista Superior</button>
+                <button class="btn" onclick="setView('bottom')">Vista Inferior</button>
+                <button class="btn" onclick="setView('isometric')">Isométrica</button>
+                <button class="btn" onclick="setView('front')">Vista Frontal</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔄 Rotação</h3>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Eixo X</span>
+                        <span id="rotX">0°</span>
+                    </div>
+                    <input type="range" min="0" max="360" value="20" id="sliderX" 
+                           oninput="updateRotation('x', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Eixo Y</span>
+                        <span id="rotY">0°</span>
+                    </div>
+                    <input type="range" min="0" max="360" value="45" id="sliderY"
+                           oninput="updateRotation('y', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Eixo Z</span>
+                        <span id="rotZ">0°</span>
+                    </div>
+                    <input type="range" min="0" max="360" value="0" id="sliderZ"
+                           oninput="updateRotation('z', this.value)">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎨 Opções</h3>
+                <button class="btn" onclick="toggleWireframe()">Toggle Wireframe</button>
+                <button class="btn" onclick="toggleComponenets()">Mostrar/Ocultar Componentes</button>
+                <button class="btn" onclick="resetView()">Resetar Visualização</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>📋 Componentes Principais</h3>
+                <div class="component-list">
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #FF6B6B;"></div>
+                        <div class="component-name">Q1-Q6</div>
+                        <div class="component-value">MOSFETs</div>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #4ECDC4;"></div>
+                        <div class="component-name">U1</div>
+                        <div class="component-value">Gate Driver</div>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #45B7D1;"></div>
+                        <div class="component-name">C1, C2</div>
+                        <div class="component-value">Capacitores</div>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #FFA07A;"></div>
+                        <div class="component-name">R1-R3</div>
+                        <div class="component-value">Shunts</div>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #98D8C8;"></div>
+                        <div class="component-name">L1-L3</div>
+                        <div class="component-value">Ferrites</div>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #F7DC6F;"></div>
+                        <div class="component-name">J1-J4</div>
+                        <div class="component-value">Conectores</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📊 Especificações</h3>
+                <div class="info-box">
+                    <p><strong>Dimensões:</strong> 150 × 100mm</p>
+                    <p><strong>Camadas:</strong> 4 (FR-4)</p>
+                    <p><strong>Espessura:</strong> 1.6mm</p>
+                    <p><strong>Cobre:</strong> 2oz/lado</p>
+                    <p><strong>Vias:</strong> ~200 termais</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="legend" style="margin: 20px auto; width: 95%; max-width: 1800px;">
+        <h4>🎨 Legenda de Cores da Placa</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2C3E50;"></div>
+                <span><strong>Substrato FR-4:</strong> Base da placa (verde/preto)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F39C12;"></div>
+                <span><strong>Trilhas de Cobre:</strong> Conexões elétricas</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #E74C3C;"></div>
+                <span><strong>Pads de Soldagem:</strong> Conexão de componentes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #27AE60;"></div>
+                <span><strong>Soldermask:</strong> Camada de proteção</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F1C40F;"></div>
+                <span><strong>Silk Screen:</strong> Legenda (designadores)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #95A5A6;"></div>
+                <span><strong>Vias:</strong> Interconexão entre camadas</span>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>🔧 Placa PCB — Controladora PMSM/BLDC | Visualização 3D Profissional | Desenvolvido com Three.js</p>
+        <p style="margin-top: 10px; font-size: 0.85em;">
+            Para melhor experiência, use navegadores modernos (Chrome, Firefox, Safari, Edge)
+        </p>
+    </footer>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, pcbGroup;
+        let components = [];
+        let autoRotate = true;
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+            scene.fog = new THREE.Fog(0xf5f5f5, 2000, 3500);
+            
+            // Camera
+            const width = document.getElementById('canvas-container').clientWidth;
+            const height = document.getElementById('canvas-container').clientHeight;
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+            camera.position.set(200, 150, 250);
+            camera.lookAt(75, 0, 50);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas').parentElement.appendChild(renderer.domElement);
+            document.getElementById('canvas').remove();
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(200, 300, 200);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // PCB Group
+            pcbGroup = new THREE.Group();
+            scene.add(pcbGroup);
+            
+            // Create PCB
+            createPCB();
+            createComponents();
+            
+            // Mouse controls
+            document.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            
+            // Animation loop
+            animate();
+        }
+        
+        function createPCB() {
+            // PCB Board (150 x 100mm)
+            const geometry = new THREE.BoxGeometry(150, 1.6, 100);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x1a472a,
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const pcb = new THREE.Mesh(geometry, material);
+            pcb.castShadow = true;
+            pcb.receiveShadow = true;
+            pcbGroup.add(pcb);
+            
+            // Trilhas (copper traces) - visual representation
+            const tracesGeometry = new THREE.BufferGeometry();
+            const positions = [];
+            
+            // Add some trace positions
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * 140 - 70;
+                const z = Math.random() * 90 - 45;
+                positions.push(x, 1, z);
+            }
+            
+            tracesGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+            const tracesMaterial = new THREE.PointsMaterial({
+                color: 0xffa500,
+                size: 1.5
+            });
+            const traces = new THREE.Points(tracesGeometry, tracesMaterial);
+            pcbGroup.add(traces);
+        }
+        
+        function createComponents() {
+            // MOSFETs (Q1-Q6) - posicionados em duas fileiras
+            const mosfetPositions = [
+                [-40, 5, -20], [0, 5, -20], [40, 5, -20],
+                [-40, 5, 20], [0, 5, 20], [40, 5, 20]
+            ];
+            
+            mosfetPositions.forEach((pos, idx) => {
+                const geom = new THREE.BoxGeometry(15, 8, 12);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xFF6B6B,
+                    metalness: 0.3,
+                    roughness: 0.5
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pcbGroup.add(mesh);
+                
+                components.push({
+                    name: `Q${idx + 1}`,
+                    type: 'MOSFET',
+                    mesh: mesh
+                });
+            });
+            
+            // Gate Driver (U1) - central
+            const driverGeom = new THREE.BoxGeometry(20, 6, 20);
+            const driverMat = new THREE.MeshStandardMaterial({
+                color: 0x4ECDC4,
+                metalness: 0.5,
+                roughness: 0.4
+            });
+            const driver = new THREE.Mesh(driverGeom, driverMat);
+            driver.position.set(0, 5, 0);
+            driver.castShadow = true;
+            driver.receiveShadow = true;
+            pcbGroup.add(driver);
+            
+            components.push({
+                name: 'U1',
+                type: 'Gate Driver DRV8302',
+                mesh: driver
+            });
+            
+            // Capacitores (C1, C2) - entrada
+            const capPositions = [
+                [-60, 5, -35], [-60, 5, 35]
+            ];
+            
+            capPositions.forEach((pos, idx) => {
+                const geom = new THREE.CylinderGeometry(8, 8, 12, 32);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x45B7D1,
+                    metalness: 0.2,
+                    roughness: 0.6
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pcbGroup.add(mesh);
+                
+                components.push({
+                    name: `C${idx + 1}`,
+                    type: 'Capacitor 470µF',
+                    mesh: mesh
+                });
+            });
+            
+            // Shunt Resistors (R1-R3)
+            const shuntPositions = [
+                [60, 5, -20], [60, 5, 0], [60, 5, 20]
+            ];
+            
+            shuntPositions.forEach((pos, idx) => {
+                const geom = new THREE.BoxGeometry(8, 4, 6);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xFFA07A,
+                    metalness: 0.4,
+                    roughness: 0.5
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pcbGroup.add(mesh);
+                
+                components.push({
+                    name: `R${idx + 1}`,
+                    type: 'Shunt 1mΩ',
+                    mesh: mesh
+                });
+            });
+            
+            // Ferrite Inductors (L1-L3)
+            const ferritPositions = [
+                [70, 5, -30], [70, 5, 0], [70, 5, 30]
+            ];
+            
+            ferritPositions.forEach((pos, idx) => {
+                const geom = new THREE.TorusGeometry(6, 3, 16, 10);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x98D8C8,
+                    metalness: 0.3,
+                    roughness: 0.6
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.rotation.y = Math.PI / 2;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pcbGroup.add(mesh);
+                
+                components.push({
+                    name: `L${idx + 1}`,
+                    type: 'Ferrite 1µH',
+                    mesh: mesh
+                });
+            });
+            
+            // Conectores (J1-J4)
+            const connectorPositions = [
+                [-70, 5, -40], [-70, 5, 40], [80, 5, -40], [80, 5, 40]
+            ];
+            
+            connectorPositions.forEach((pos, idx) => {
+                const geom = new THREE.BoxGeometry(12, 10, 12);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xF7DC6F,
+                    metalness: 0.6,
+                    roughness: 0.3
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pcbGroup.add(mesh);
+                
+                components.push({
+                    name: `J${idx + 1}`,
+                    type: 'Conector',
+                    mesh: mesh
+                });
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (autoRotate) {
+                pcbGroup.rotation.y += 0.0005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function setView(view) {
+            const positions = {
+                'top': { x: 75, y: 300, z: 50 },
+                'bottom': { x: 75, y: -300, z: 50 },
+                'isometric': { x: 200, y: 150, z: 250 },
+                'front': { x: 75, y: 100, z: 400 }
+            };
+            
+            const pos = positions[view] || positions['isometric'];
+            camera.position.set(pos.x, pos.y, pos.z);
+            camera.lookAt(75, 0, 50);
+        }
+        
+        function updateRotation(axis, value) {
+            autoRotate = false;
+            const rad = (value * Math.PI) / 180;
+            
+            if (axis === 'x') {
+                pcbGroup.rotation.x = rad;
+                document.getElementById('rotX').textContent = value + '°';
+            } else if (axis === 'y') {
+                pcbGroup.rotation.y = rad;
+                document.getElementById('rotY').textContent = value + '°';
+            } else if (axis === 'z') {
+                pcbGroup.rotation.z = rad;
+                document.getElementById('rotZ').textContent = value + '°';
+            }
+        }
+        
+        function toggleWireframe() {
+            pcbGroup.traverse(function(child) {
+                if (child.material) {
+                    child.material.wireframe = !child.material.wireframe;
+                }
+            });
+        }
+        
+        function toggleComponenets() {
+            components.forEach(comp => {
+                comp.mesh.visible = !comp.mesh.visible;
+            });
+        }
+        
+        function resetView() {
+            autoRotate = true;
+            document.getElementById('sliderX').value = 20;
+            document.getElementById('sliderY').value = 45;
+            document.getElementById('sliderZ').value = 0;
+            document.getElementById('rotX').textContent = '20°';
+            document.getElementById('rotY').textContent = '45°';
+            document.getElementById('rotZ').textContent = '0°';
+            pcbGroup.rotation.set(
+                (20 * Math.PI) / 180,
+                (45 * Math.PI) / 180,
+                0
+            );
+            camera.position.set(200, 150, 250);
+            camera.lookAt(75, 0, 50);
+        }
+        
+        function onMouseMove(event) {
+            if (event.buttons === 1) { // Left mouse button
+                const deltaX = event.movementX * 0.005;
+                const deltaY = event.movementY * 0.005;
+                
+                autoRotate = false;
+                pcbGroup.rotation.y += deltaX;
+                pcbGroup.rotation.x += deltaY;
+            }
+        }
+        
+        function onWindowResize() {
+            const width = document.getElementById('canvas-container').clientWidth;
+            const height = document.getElementById('canvas-container').clientHeight;
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+        
+        // Inicializar quando o documento carregar
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

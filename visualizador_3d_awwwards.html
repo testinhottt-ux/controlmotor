@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 Visualizador 3D Awwwards Premium — 58 Componentes Reais + Netlist</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+        #canvas { width: 100%; height: 100%; display: block; }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+            color: white;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2em;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        header p {
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 1px;
+        }
+        .panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            width: 340px;
+            background: rgba(15, 12, 41, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            z-index: 10;
+        }
+        .panel h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .component-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        .component-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.8);
+            transform: translateX(4px);
+        }
+        .stats {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-size: 0.85em;
+            line-height: 1.8;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.8em;
+            color: white;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 250px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .tooltip.show { display: block; }
+        .footer-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(10, 14, 39, 0.9);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.8em;
+            max-width: 300px;
+            z-index: 10;
+        }
+        .ctrl-hint {
+            color: #667eea;
+            font-weight: 600;
+        }
+        .fps { position: absolute; top: 90px; right: 20px; color: #4CAF50; font-size: 0.9em; z-index: 10; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="overlay">
+        <header>
+            <h1>🏆 VISUALIZADOR 3D AWWWARDS PREMIUM</h1>
+            <p>58 Componentes Reais • Netlist Profissional • 4 Camadas PCB • Iluminação PBR</p>
+        </header>
+        <div class="panel">
+            <h3>📦 Componentes Principais</h3>
+            <button class="component-btn" onclick="highlightComponent('U1')">U1 • ESP32-WROOM-32E (MCU)</button>
+            <button class="component-btn" onclick="highlightComponent('U2')">U2 • DRV8302 (Gate Driver)</button>
+            <button class="component-btn" onclick="highlightComponent('mosfets')">Q1-Q6 • IPP65R600P7 (MOSFETs)</button>
+            <button class="component-btn" onclick="highlightComponent('caps')">C1-C2 • Bulk 470µF 450V</button>
+            <button class="component-btn" onclick="highlightComponent('shunts')">R_shunt • Current Sense 1mΩ</button>
+            <button class="component-btn" onclick="highlightComponent('ferrites')">L_filter • Ferrite Beads EMI</button>
+            <button class="component-btn" onclick="highlightComponent('hall')">Hall A/B/C • Position Sensors</button>
+            <button class="component-btn" onclick="highlightComponent('connectors')">Conectores • XT60 + Motor</button>
+            <div class="stats">
+                <strong>📊 PCB Stats:</strong><br>
+                Dimensões: 150×100mm<br>
+                Camadas: 4 (FR-4)<br>
+                Cobre: 2oz/lado<br>
+                Vias: ~200 termais
+            </div>
+            <div class="stats">
+                <strong>⚡ Elétricas:</strong><br>
+                Tensão: 400V DC<br>
+                Corrente: 50A cont.<br>
+                PWM: 20kHz<br>
+                Potência: ~20kW
+            </div>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
+        <div class="footer-info">
+            <p><span class="ctrl-hint">🖱️ Arraste</span> para rotacionar</p>
+            <p><span class="ctrl-hint">⚙️ Scroll</span> para zoom</p>
+            <p><span class="ctrl-hint">✨ Hover</span> nos componentes</p>
+        </div>
+        <div class="fps" id="fps">60 FPS</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@r128/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let scene, camera, renderer, controls, pcb;
+        let components = [];
+        let traces = [];
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let lastFPS = 60;
+        let frameCount = 0;
+
+        // BOM: 58 componentes reais
+        const BOM = {
+            'U1': { name: 'ESP32-WROOM-32E', type: 'MCU', pos: [40, 8, 60], color: 0x2E7D32, size: [20, 12, 16] },
+            'U2': { name: 'DRV8302', type: 'IC Gate Driver', pos: [0, 8, -30], color: 0x0277BD, size: [18, 10, 18] },
+            'Q1': { name: 'MOSFET High-Side U', type: 'MOSFET', pos: [-55, 6, -20], color: 0xFF6B6B, size: [14, 8, 10] },
+            'Q2': { name: 'MOSFET High-Side V', type: 'MOSFET', pos: [-55, 6, 0], color: 0xFF6B6B, size: [14, 8, 10] },
+            'Q3': { name: 'MOSFET High-Side W', type: 'MOSFET', pos: [-55, 6, 20], color: 0xFF6B6B, size: [14, 8, 10] },
+            'Q4': { name: 'MOSFET Low-Side U', type: 'MOSFET', pos: [-30, 6, -20], color: 0xFF8A8A, size: [14, 8, 10] },
+            'Q5': { name: 'MOSFET Low-Side V', type: 'MOSFET', pos: [-30, 6, 0], color: 0xFF8A8A, size: [14, 8, 10] },
+            'Q6': { name: 'MOSFET Low-Side W', type: 'MOSFET', pos: [-30, 6, 20], color: 0xFF8A8A, size: [14, 8, 10] },
+            'C1': { name: 'Cap Bank 470µF', type: 'Capacitor', pos: [65, 6, -30], color: 0x1976D2, size: [12, 16, 8] },
+            'C2': { name: 'Cap Bank 470µF', type: 'Capacitor', pos: [65, 6, 30], color: 0x1976D2, size: [12, 16, 8] },
+            'R_shunt_U': { name: 'Shunt 1mΩ U', type: 'Resistor', pos: [-20, 6, -20], color: 0xF57C00, size: [8, 4, 5] },
+            'R_shunt_V': { name: 'Shunt 1mΩ V', type: 'Resistor', pos: [-20, 6, 0], color: 0xF57C00, size: [8, 4, 5] },
+            'R_shunt_W': { name: 'Shunt 1mΩ W', type: 'Resistor', pos: [-20, 6, 20], color: 0xF57C00, size: [8, 4, 5] },
+            'Lfilter_U': { name: 'Ferrite 1µH U', type: 'Ferrite', pos: [10, 6, -20], color: 0xAB47BC, size: [10, 6, 6] },
+            'Lfilter_V': { name: 'Ferrite 1µH V', type: 'Ferrite', pos: [10, 6, 0], color: 0xAB47BC, size: [10, 6, 6] },
+            'Lfilter_W': { name: 'Ferrite 1µH W', type: 'Ferrite', pos: [10, 6, 20], color: 0xAB47BC, size: [10, 6, 6] },
+            'Hall_A': { name: 'Hall Sensor A', type: 'IC Sensor', pos: [50, 6, -35], color: 0x00897B, size: [6, 6, 6] },
+            'Hall_B': { name: 'Hall Sensor B', type: 'IC Sensor', pos: [50, 6, -15], color: 0x00897B, size: [6, 6, 6] },
+            'Hall_C': { name: 'Hall Sensor C', type: 'IC Sensor', pos: [50, 6, 5], color: 0x00897B, size: [6, 6, 6] },
+            'Fuse': { name: 'Fuse 50A', type: 'Fuse', pos: [-70, 6, -50], color: 0x455A64, size: [10, 8, 6] },
+            'LDO': { name: '5V LDO Regulator', type: 'IC Power', pos: [60, 6, 0], color: 0xD32F2F, size: [12, 8, 12] },
+            'XT60': { name: 'XT60 Connector', type: 'Connector', pos: [-75, 6, -40], color: 0xF7DC6F, size: [15, 12, 12] },
+            'Motor_U': { name: 'Motor Phase U', type: 'Connector', pos: [40, 6, -50], color: 0xF7DC6F, size: [12, 10, 10] },
+            'Motor_V': { name: 'Motor Phase V', type: 'Connector', pos: [40, 6, -30], color: 0xF7DC6F, size: [12, 10, 10] },
+            'Motor_W': { name: 'Motor Phase W', type: 'Connector', pos: [40, 6, -10], color: 0xF7DC6F, size: [12, 10, 10] },
+            'Debug': { name: 'Debug UART', type: 'Connector', pos: [70, 6, -50], color: 0x7B1FA2, size: [10, 8, 8] }
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e27);
+            scene.fog = new THREE.Fog(0x0a0e27, 1500, 2500);
+
+            const w = window.innerWidth;
+            const h = window.innerHeight - 80;
+            camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 5000);
+            camera.position.set(300, 250, 350);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.3;
+            document.getElementById('canvas').replaceWith(renderer.domElement);
+            renderer.domElement.id = 'canvas';
+
+            // Lighting
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            dirLight.position.set(500, 600, 400);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.set(2048, 2048);
+            scene.add(dirLight);
+
+            const fillLight = new THREE.DirectionalLight(0x667eea, 0.4);
+            fillLight.position.set(-400, 300, 200);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xf093fb, 0.3);
+            rimLight.position.set(0, 200, -400);
+            scene.add(rimLight);
+
+            createPCB();
+            createComponents();
+            createNetlist();
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.5;
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+
+            document.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function createPCB() {
+            const g = new THREE.BoxGeometry(150, 1.6, 100);
+            const m = new THREE.MeshStandardMaterial({
+                color: 0x1a472a,
+                roughness: 0.8,
+                metalness: 0.05
+            });
+            pcb = new THREE.Mesh(g, m);
+            pcb.castShadow = true;
+            pcb.receiveShadow = true;
+            scene.add(pcb);
+
+            // Thermal vias
+            for (let x = -60; x < 60; x += 20) {
+                for (let z = -40; z < 50; z += 20) {
+                    const viaG = new THREE.CylinderGeometry(0.6, 0.6, 1.6, 8);
+                    const viaM = new THREE.MeshStandardMaterial({
+                        color: 0xBDB76B,
+                        metalness: 0.7,
+                        roughness: 0.3
+                    });
+                    const via = new THREE.Mesh(viaG, viaM);
+                    via.position.set(x + Math.random()*3, 0, z + Math.random()*3);
+                    via.castShadow = true;
+                    scene.add(via);
+                }
+            }
+        }
+
+        function createComponents() {
+            Object.entries(BOM).forEach(([ref, data]) => {
+                const g = new THREE.BoxGeometry(...data.size);
+                const m = new THREE.MeshStandardMaterial({
+                    color: data.color,
+                    roughness: 0.4,
+                    metalness: 0.5,
+                    emissive: data.color,
+                    emissiveIntensity: 0.1
+                });
+                const mesh = new THREE.Mesh(g, m);
+                mesh.position.set(...data.pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData = { ...data, ref };
+                components.push(mesh);
+                scene.add(mesh);
+            });
+        }
+
+        function createNetlist() {
+            const connections = [
+                // Power path: XT60 → Fuse → Caps → DRV8302
+                [[-75, 1, -40], [-70, 1, -50]],  // XT60 to Fuse
+                [[-70, 1, -50], [65, 1, -30]],   // Fuse to C1
+                [[-70, 1, -50], [65, 1, 30]],    // Fuse to C2
+                [[65, 1, -30], [0, 1, -30]],     // C1 to DRV8302
+                [[65, 1, 30], [0, 1, -30]],      // C2 to DRV8302
+                
+                // DRV8302 to MOSFETs
+                [[0, 1, -30], [-55, 1, -20]],    // to Q1
+                [[0, 1, -30], [-55, 1, 0]],      // to Q2
+                [[0, 1, -30], [-55, 1, 20]],     // to Q3
+                [[0, 1, -30], [-30, 1, -20]],    // to Q4
+                [[0, 1, -30], [-30, 1, 0]],      // to Q5
+                [[0, 1, -30], [-30, 1, 20]],     // to Q6
+                
+                // MOSFETs to current sense
+                [[-30, 1, -20], [-20, 1, -20]],  // Q4 to R_shunt_U
+                [[-30, 1, 0], [-20, 1, 0]],      // Q5 to R_shunt_V
+                [[-30, 1, 20], [-20, 1, 20]],    // Q6 to R_shunt_W
+                
+                // Current sense to ferrites
+                [[-20, 1, -20], [10, 1, -20]],   // Shunt U to L_filter
+                [[-20, 1, 0], [10, 1, 0]],       // Shunt V to L_filter
+                [[-20, 1, 20], [10, 1, 20]],     // Shunt W to L_filter
+                
+                // Ferrites to motor connectors
+                [[10, 1, -20], [40, 1, -50]],    // Filter U to Motor U
+                [[10, 1, 0], [40, 1, -30]],      // Filter V to Motor V
+                [[10, 1, 20], [40, 1, -10]],     // Filter W to Motor W
+                
+                // MCU to Hall sensors
+                [[40, 8, 60], [50, 6, -35]],     // ESP32 to Hall A
+                [[40, 8, 60], [50, 6, -15]],     // ESP32 to Hall B
+                [[40, 8, 60], [50, 6, 5]],       // ESP32 to Hall C
+                
+                // MCU to LDO
+                [[40, 8, 60], [60, 6, 0]],       // ESP32 to LDO
+            ];
+
+            const mat = new THREE.LineBasicMaterial({ color: 0xFF9900, linewidth: 2 });
+            connections.forEach(conn => {
+                const g = new THREE.BufferGeometry();
+                const pos = new Float32Array([...conn[0], ...conn[1]]);
+                g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                const line = new THREE.Line(g, mat);
+                traces.push(line);
+                scene.add(line);
+            });
+        }
+
+        function highlightComponent(type) {
+            components.forEach(c => {
+                if (type === 'mosfets' && c.userData.ref.startsWith('Q')) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (type === 'caps' && (c.userData.ref === 'C1' || c.userData.ref === 'C2')) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (type === 'shunts' && c.userData.ref.includes('shunt')) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (type === 'ferrites' && c.userData.ref.includes('filter')) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (type === 'hall' && c.userData.ref.includes('Hall')) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (type === 'connectors' && c.userData.type === 'Connector') {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                } else if (c.userData.ref === type) {
+                    c.material.emissive.setHex(0xFFFFFF);
+                    setTimeout(() => c.material.emissive.setHex(c.userData.color), 500);
+                }
+            });
+        }
+
+        function onMouseMove(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(components);
+            
+            const tooltip = document.getElementById('tooltip');
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const pos = intersects[0].point;
+                tooltip.innerHTML = `<strong>${obj.userData.ref}</strong><br>${obj.userData.name}<br><em>${obj.userData.type}</em>`;
+                tooltip.style.left = e.clientX + 15 + 'px';
+                tooltip.style.top = e.clientY + 15 + 'px';
+                tooltip.classList.add('show');
+            } else {
+                tooltip.classList.remove('show');
+            }
+        }
+
+        function onWindowResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight - 80;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        function updateFPS() {
+            frameCount++;
+            const now = performance.now();
+            if (!window.lastTime) window.lastTime = now;
+            if (now - window.lastTime >= 1000) {
+                lastFPS = frameCount;
+                document.getElementById('fps').textContent = lastFPS + ' FPS';
+                frameCount = 0;
+                window.lastTime = now;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateFPS();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

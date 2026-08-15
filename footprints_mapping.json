@@ -1,0 +1,207 @@
+{
+  "U1": {
+    "footprint": "Package_BGA:BGA-48_7x7mm_P0.5mm",
+    "type": "BGA",
+    "size": "48-pin"
+  },
+  "U2": {
+    "footprint": "Package_LQFP:LQFP-48_7x7mm_P0.5mm",
+    "type": "QFP",
+    "size": "48-pin"
+  },
+  "Q1": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "Q2": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "Q3": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "Q4": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "Q5": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "Q6": {
+    "footprint": "Package_TO_SOT_Transistor:TO-247-2",
+    "type": "TO-247",
+    "pins": 3
+  },
+  "C1": {
+    "footprint": "Capacitor_SMD:C_1210_3225Metric",
+    "type": "SMD",
+    "size": "1210"
+  },
+  "C2": {
+    "footprint": "Capacitor_SMD:C_1210_3225Metric",
+    "type": "SMD",
+    "size": "1210"
+  },
+  "C_boot1": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "C_boot2": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "C_boot3": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Cfilter_1": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Cfilter_2": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Cfilter_adc": {
+    "footprint": "Capacitor_SMD:C_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_u": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_v": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_w": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_ls_u": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_ls_v": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Rgate_ls_w": {
+    "footprint": "Resistor_SMD:R_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Lvcc": {
+    "footprint": "Inductor_SMD:L_1210_3225Metric",
+    "type": "SMD",
+    "size": "1210"
+  },
+  "Lfilter_u": {
+    "footprint": "Inductor_SMD:L_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Lfilter_v": {
+    "footprint": "Inductor_SMD:L_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "Lfilter_w": {
+    "footprint": "Inductor_SMD:L_0603_1608Metric",
+    "type": "SMD",
+    "size": "0603"
+  },
+  "D_bootstrap_u": {
+    "footprint": "Diode_SMD:D_SOD-123",
+    "type": "SOD-123",
+    "pins": 2
+  },
+  "D_bootstrap_v": {
+    "footprint": "Diode_SMD:D_SOD-123",
+    "type": "SOD-123",
+    "pins": 2
+  },
+  "D_bootstrap_w": {
+    "footprint": "Diode_SMD:D_SOD-123",
+    "type": "SOD-123",
+    "pins": 2
+  },
+  "D_tvs_1": {
+    "footprint": "Diode_SMD:D_SOD-123",
+    "type": "SOD-123",
+    "pins": 2
+  },
+  "D_tvs_2": {
+    "footprint": "Diode_SMD:D_SOD-123",
+    "type": "SOD-123",
+    "pins": 2
+  },
+  "Hall_A": {
+    "footprint": "Package_DIP:DIP-3_W8.89mm",
+    "type": "DIP",
+    "pins": 3
+  },
+  "Hall_B": {
+    "footprint": "Package_DIP:DIP-3_W8.89mm",
+    "type": "DIP",
+    "pins": 3
+  },
+  "Hall_C": {
+    "footprint": "Package_DIP:DIP-3_W8.89mm",
+    "type": "DIP",
+    "pins": 3
+  },
+  "Connector_XT60": {
+    "footprint": "Connector:XT60-M",
+    "type": "Connector",
+    "pins": 2
+  },
+  "Connector_motor_u": {
+    "footprint": "Connector_Samtec:SAMTEC-M-M_L25.02mm_W3.08mm_P2.54mm",
+    "type": "Stud M4",
+    "pins": 1
+  },
+  "Connector_motor_v": {
+    "footprint": "Connector_Samtec:SAMTEC-M-M_L25.02mm_W3.08mm_P2.54mm",
+    "type": "Stud M4",
+    "pins": 1
+  },
+  "Connector_motor_w": {
+    "footprint": "Connector_Samtec:SAMTEC-M-M_L25.02mm_W3.08mm_P2.54mm",
+    "type": "Stud M4",
+    "pins": 1
+  },
+  "Connector_aux": {
+    "footprint": "Connector_JST:JST-PH-2.0mm-4pin",
+    "type": "JST-PH",
+    "pins": 4
+  },
+  "Connector_debug": {
+    "footprint": "Connector_USB:USB_Micro-B_Wuerth-614-105-41-341631",
+    "type": "\u00b5USB",
+    "pins": 5
+  },
+  "Fuse1": {
+    "footprint": "Fuse:Fuse_1206_3216Metric",
+    "type": "SMD Fuse",
+    "size": "1206"
+  }
+}

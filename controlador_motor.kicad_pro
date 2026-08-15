@@ -1,0 +1,244 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {
+        "board_outline_line_width": 0.05,
+        "copper_line_width": 0.2,
+        "copper_text_italic": false,
+        "copper_text_size_h": 1.5,
+        "copper_text_size_v": 1.5,
+        "copper_text_thickness": 0.3,
+        "copper_text_upright": true,
+        "courtyard_line_width": 0.05,
+        "dimension_precision": 4,
+        "dimension_units": 3,
+        "dimensions": {
+          "arrow_length": 5000000,
+          "extension_offset": 500000,
+          "keep_text_aligned": true,
+          "line_width": 200000
+        },
+        "fab_line_width": 0.1,
+        "fab_text_italic": false,
+        "fab_text_size_h": 1.0,
+        "fab_text_size_v": 1.0,
+        "fab_text_thickness": 0.15,
+        "fab_text_upright": true,
+        "other_line_width": 0.15,
+        "other_text_italic": false,
+        "other_text_size_h": 1.0,
+        "other_text_size_v": 1.0,
+        "other_text_thickness": 0.15,
+        "other_text_upright": true,
+        "pads": {
+          "drill_size": 0.762,
+          "height": 1.524,
+          "width": 1.524
+        },
+        "silk_line_width": 0.15,
+        "silk_text_italic": false,
+        "silk_text_size_h": 1.0,
+        "silk_text_size_v": 1.0,
+        "silk_text_thickness": 0.15,
+        "silk_text_upright": true,
+        "zones": {
+          "45_degree_only": false,
+          "min_clearance": 0.508
+        }
+      },
+      "diff_pair_dimensions": [],
+      "drc_exclusions": [],
+      "meta": {
+        "filename": "board.kicad_pcb",
+        "version": 2
+      },
+      "rule_severities": {
+        "annular_width": "error",
+        "clearance": "error",
+        "copper_edge_clearance": "error",
+        "copper_sliver": "warning",
+        "courtyards_overlap": "error",
+        "diff_pair_gap_out_of_range": "error",
+        "diff_pair_uncoupled_length_too_long": "error",
+        "drill_out_of_range": "error",
+        "duplicate_footprints": "warning",
+        "extra_footprint": "warning",
+        "footprint_type_mismatch": "error",
+        "invalid_outline": "error",
+        "isolated_copper": "warning",
+        "item_on_disabled_layer": "error",
+        "items_not_allowed": "error",
+        "length_out_of_range": "error",
+        "malformed_courtyard": "error",
+        "microvia_drill_out_of_range": "error",
+        "missing_courtyard": "warning",
+        "missing_footprint": "error",
+        "net_conflict": "warning",
+        "offset_out_of_range": "error",
+        "via_annulus": "error",
+        "via_dangling": "warning",
+        "via_hole_larger_than_pad": "error",
+        "zone_has_empty_net": "error",
+        "zones_intersect": "error"
+      },
+      "rules": {
+        "allow_blind_buried_vias": false,
+        "allow_microvias": false,
+        "max_error": 0.0,
+        "min_clearance": 0.0,
+        "min_copper_edge_clearance": 0.0,
+        "min_hole_clearance": 0.25,
+        "min_hole_to_hole": 0.25,
+        "min_microvia_diameter": 0.2,
+        "min_microvia_drill": 0.1,
+        "min_silk_clearance": 0.0,
+        "min_text_height": 0.8,
+        "min_text_width": 0.08,
+        "min_through_hole_diameter": 0.3,
+        "min_track_width": 0.2,
+        "min_via_annulus": 0.1,
+        "min_via_diameter": 0.8,
+        "solder_mask_clearance": 0.0,
+        "solder_mask_min_width": 0.0,
+        "use_height_for_length_calcs": true
+      },
+      "track_widths": [
+        0.25,
+        0.4,
+        0.508,
+        0.762,
+        1.0,
+        1.27,
+        1.524
+      ],
+      "via_dimensions": [
+        {
+          "diameter": 0.8,
+          "drill": 0.4
+        },
+        {
+          "diameter": 1.0,
+          "drill": 0.5
+        },
+        {
+          "diameter": 1.2,
+          "drill": 0.6
+        }
+      ],
+      "zones_allow_external_fillets": false
+    },
+    "layer_presets": []
+  },
+  "boards": [
+    "controlador_motor.kicad_pcb"
+  ],
+  "cvpcb": {
+    "equivalence_files": []
+  },
+  "eeschema": {
+    "alias_libraries": [],
+    "custom_symbol_libraries": [
+      {
+        "name": "MotorCtrl",
+        "uri": "${KIPRJMOD}/MotorCtrl.kicad_sym"
+      }
+    ],
+    "legacy_lib_dir": "",
+    "legacy_sch_dir": "",
+    "search_paths": [],
+    "template_fieldnames": [],
+    "version": 1
+  },
+  "files": [
+    {
+      "attr": [],
+      "filename": "schematic.kicad_sch",
+      "keep": true,
+      "lib": false,
+      "offset": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "page": "A4"
+    }
+  ],
+  "meta": {
+    "filename": "controlador_motor.kicad_pro",
+    "version": 1
+  },
+  "net": {
+    "classes": [
+      {
+        "bus_width": 12.0,
+        "clearance": 0.254,
+        "diff_pair_gap": 0.25,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.2,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "Default",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.25,
+        "via_diameter": 0.8,
+        "via_drill": 0.4,
+        "wire_width": 6.0
+      }
+    ],
+    "meta": {
+      "filename": "controlador_motor.kicad_net",
+      "version": 1
+    },
+    "nets": []
+  },
+  "pcbnew": {
+    "last_paths": {
+      "gencad": "",
+      "idf": "",
+      "netlist": "",
+      "specctra_dsn": "",
+      "step": "",
+      "vrml": ""
+    },
+    "page_layout_descr_file": ""
+  },
+  "schematic": {
+    "annotate_start_num": 1,
+    "drawing": {
+      "default_bus_thickness": 12.0,
+      "default_junction_size": 40.0,
+      "default_line_thickness": 10.0,
+      "default_text_size": 50.0,
+      "default_wire_thickness": 10.0,
+      "field_names": [],
+      "intersheets_ref_own_page": false,
+      "intersheets_ref_prefix": "",
+      "intersheets_ref_short": false,
+      "intersheets_ref_show": false,
+      "intersheets_ref_suffix": "",
+      "junction_size_choice": 3,
+      "pin_symbol_size": 25.0,
+      "text_offset_ratio": 0.15
+    },
+    "legacy_lib_dir": "",
+    "legacy_sch_dir": "",
+    "meta": {
+      "filename": "controlador_motor.kicad_sch",
+      "version": 1
+    },
+    "net_format_name": "KiCad",
+    "page_layout_descr_file": "",
+    "parse_files": [],
+    "search_paths": [],
+    "sub_lib_path": "",
+    "template_fieldnames": [
+      "Reference",
+      "Value",
+      "Footprint",
+      "Datasheet",
+      "ki_fp_filters"
+    ],
+    "version": 1
+  }
+}

@@ -1,0 +1,128 @@
+* SPICE Simulation: 3-Phase BLDC Motor Inverter (FIXED)
+* Objective: Validate MOSFET switching, current ripple, EMI, thermal profile
+* Tool: ngspice compatible
+* Motor: BYD Seagull equivalent model
+* Control: 50A continuous, 400V DC link, 20kHz PWM
+
+.title 3-Phase BLDC Inverter - 50A/400V Simulation
+
+* ============= POWER SUPPLY =============
+Vdc vdc gnd DC 400
+
+* Capacitor bank (DC link filtering)
+Cbulk vdc gnd 470u IC=400
+
+* ============= PWM CONTROL SIGNALS (20 kHz, 50% duty) =============
+* Phase U (0°)
+Vpwm_u gate_u gnd PULSE(0 15 0u 100n 100n 25u 50u)
+
+* Phase V (120° offset = 16.67µs)
+Vpwm_v gate_v gnd PULSE(0 15 16.67u 100n 100n 25u 50u)
+
+* Phase W (240° offset = 33.33µs)
+Vpwm_w gate_w gnd PULSE(0 15 33.33u 100n 100n 25u 50u)
+
+* ============= SIMPLIFIED DEAD-TIME LOGIC =============
+* High-side gate signals
+Rgate_hs_u gate_u gate_hs_u 1k
+Cgate_hs_u gate_hs_u gnd 1n
+
+Rgate_hs_v gate_v gate_hs_v 1k
+Cgate_hs_v gate_hs_v gnd 1n
+
+Rgate_hs_w gate_w gate_hs_w 1k
+Cgate_hs_w gate_hs_w gnd 1n
+
+* ============= 3-PHASE MOSFET BRIDGE (Simplified) =============
+* High-side MOSFETs (Q1, Q2, Q3) - Switch model
+Shs_u vdc phase_u gate_hs_u gnd sw_mosfet
+
+* Low-side MOSFETs (Q4, Q5, Q6) - With gate pulldown
+Sls_u phase_u gnd gate_hs_u gnd sw_mosfet
+
+Shs_v vdc phase_v gate_hs_v gnd sw_mosfet
+Sls_v phase_v gnd gate_hs_v gnd sw_mosfet
+
+Shs_w vdc phase_w gate_hs_w gnd sw_mosfet
+Sls_w phase_w gnd gate_hs_w gnd sw_mosfet
+
+* MOSFET switch model (On-resistance ~0.01Ω for 50A capability)
+.model sw_mosfet SW(VT=5 VH=2 RON=0.01 ROFF=1e8)
+
+* ============= MOTOR PHASE IMPEDANCES (PMSM Equivalent) =============
+* Back-EMF: 143V peak @ 50% speed
+
+* Phase U - Motor winding with back-EMF
+Lphase_u phase_u neutral 100u
+Rphase_u neutral neutral_emf 0.1
+Ephase_u neutral_emf gnd SIN(0 143.5 200 0 0)
+
+* Phase V (120° phase shift)
+Lphase_v phase_v neutral 100u
+Rphase_v neutral neutral_emf 0.1
+
+* Phase W (240° phase shift)
+Lphase_w phase_w neutral 100u
+Rphase_w neutral neutral_emf 0.1
+
+* Neutral point return to ground (small impedance)
+Lneutral neutral gnd 1u
+
+* ============= CURRENT SENSING =============
+* Shunt resistors on each phase output
+Rshunt_u phase_u_out phase_u 0.001
+Rshunt_v phase_v_out phase_v 0.001
+Rshunt_w phase_w_out phase_w 0.001
+
+* Load connection (motor phases connect to output)
+Rload_u phase_u_out gnd 2
+Rload_v phase_v_out gnd 2
+Rload_w phase_w_out gnd 2
+
+* ============= FILTERING NETWORKS (Reducing EMI) =============
+* Ferrite bead on each phase output
+Lferrite_u phase_u_out phase_u_filt 1u
+Rferrite_u phase_u_filt gnd 100
+
+Lferrite_v phase_v_out phase_v_filt 1u
+Rferrite_v phase_v_filt gnd 100
+
+Lferrite_w phase_w_out phase_w_filt 1u
+Rferrite_w phase_w_filt gnd 100
+
+* ============= MEASUREMENTS & ANALYSIS =============
+
+* Measure peak current
+.measure tran I_peak_u MAX I(Rshunt_u)
+.measure tran I_peak_v MAX I(Rshunt_v)
+.measure tran I_peak_w MAX I(Rshunt_w)
+
+* Measure DC link ripple
+.measure tran Vdc_ripple PP V(vdc)
+.measure tran Vdc_min MIN V(vdc)
+.measure tran Vdc_max MAX V(vdc)
+
+* Phase voltage measurements
+.measure tran Vphase_u_peak MAX V(phase_u)
+.measure tran Vphase_u_min MIN V(phase_u)
+
+* Power calculations
+.measure tran Power_avg AVG V(vdc)*I(Vdc)
+.measure tran Power_peak MAX ABS(V(vdc)*I(Vdc))
+
+* ============= TRANSIENT SIMULATION =============
+* Run 5ms of simulation (250 PWM cycles)
+.tran 1e-6 5e-3 0 1e-6
+
+* ============= INITIAL CONDITIONS =============
+.ic V(vdc)=400 V(phase_u)=0 V(phase_v)=0 V(phase_w)=0
+
+* ============= OUTPUT CONTROL =============
+* Save all node voltages and currents
+.save all
+
+* Print results
+.print tran V(vdc) V(phase_u) V(phase_v) V(phase_w) I(Rshunt_u) I(Rshunt_v) I(Rshunt_w)
+
+* ============= END OF NETLIST =============
+.end

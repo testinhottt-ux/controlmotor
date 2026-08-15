@@ -1,0 +1,403 @@
+/*
+ * Bluetooth LE Interface - Motor Tuning & Telemetry
+ * Purpose: Command/control and real-time data streaming over BLE
+ * Characteristics: 11 properties (RPM, current, temp, Kp, Ki, Kd, etc)
+ */
+
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "types.h"
+
+// ============ EXTERNAL REFERENCES ============
+
+extern MotorState motor_state;
+
+extern struct TuningParams {
+    float kp;
+    float ki;
+    float kd;
+    float max_current;
+    float max_voltage;
+    uint8_t control_mode;
+    uint8_t sensor_mode;
+} tuning;
+
+extern SemaphoreHandle_t state_mutex;
+extern void foc_set_rpm(float rpm);
+extern void foc_update_tuning(float kp, float ki, float kd);
+extern void eeprom_save_config(void);
+extern void autolearn_request_tuning(void);
+extern void autolearn_enable_learning(bool enable);
+extern void autolearn_set_objective(uint8_t objective);
+extern AutoLearnState* autolearn_get_state(void);
+
+// ============ BLE SERVICE & CHARACTERISTIC UUIDs ============
+
+#define SERVICE_UUID_MOTOR "180D0000-0000-0000-0000-000000000000"
+#define SERVICE_UUID_TUNING "180E0000-0000-0000-0000-000000000000"
+
+// Telemetry characteristics
+#define CHAR_UUID_RPM "2A6E0000-0000-0000-0000-000000000000"
+#define CHAR_UUID_CURRENT "2A190000-0000-0000-0000-000000000000"
+#define CHAR_UUID_TEMPERATURE "2A6F0000-0000-0000-0000-000000000000"
+#define CHAR_UUID_VOLTAGE "2A760000-0000-0000-0000-000000000000"
+#define CHAR_UUID_STATUS "2A370000-0000-0000-0000-000000000000"
+
+// Tuning characteristics
+#define CHAR_UUID_KP "2B000000-0000-0000-0000-000000000000"
+#define CHAR_UUID_KI "2B010000-0000-0000-0000-000000000000"
+#define CHAR_UUID_KD "2B020000-0000-0000-0000-000000000000"
+#define CHAR_UUID_TARGET_RPM "2B030000-0000-0000-0000-000000000000"
+#define CHAR_UUID_CONTROL_MODE "2B040000-0000-0000-0000-000000000000"
+#define CHAR_UUID_AUTOLEARN "2B050000-0000-0000-0000-000000000000"
+#define CHAR_UUID_MOTOR_BRAKE "2B060000-0000-0000-0000-000000000000"
+
+// ============ GLOBAL BLE OBJECTS ============
+
+static BLEServer *ble_server = NULL;
+static BLEService *ble_service_motor = NULL;
+static BLEService *ble_service_tuning = NULL;
+
+// Telemetry characteristics (notifications)
+static BLECharacteristic *char_rpm = NULL;
+static BLECharacteristic *char_current = NULL;
+static BLECharacteristic *char_temperature = NULL;
+static BLECharacteristic *char_voltage = NULL;
+static BLECharacteristic *char_status = NULL;
+
+// Tuning characteristics (read/write)
+static BLECharacteristic *char_kp = NULL;
+static BLECharacteristic *char_ki = NULL;
+static BLECharacteristic *char_kd = NULL;
+static BLECharacteristic *char_target_rpm = NULL;
+static BLECharacteristic *char_control_mode = NULL;
+static BLECharacteristic *char_autolearn = NULL;
+static BLECharacteristic *char_motor_brake = NULL;
+
+// ============ CALLBACKS ============
+
+class MotorControlCallbacks: public BLECharacteristicCallbacks {
+public:
+    void onWrite(BLECharacteristic *pCharacteristic) override {
+        std::string uuid = pCharacteristic->getUUID().toString();
+        uint8_t* data = pCharacteristic->getData();
+        size_t length = pCharacteristic->getValue().length();
+        
+        if (length < 4) {
+            Serial.println("[BLE] ERROR: Payload too short");
+            return;
+        }
+        
+        // Extract float value from first 4 bytes
+        float value;
+        memcpy(&value, data, sizeof(float));
+        
+        Serial.printf("[BLE] Write: %s = %.2f\n", uuid.c_str(), value);
+        
+        xSemaphoreTake(state_mutex, portMAX_DELAY);
+        
+        if (uuid == CHAR_UUID_KP) {
+            tuning.kp = fmax(0.01, fmin(5.0, value));
+            char_kp->setValue(tuning.kp);
+        }
+        else if (uuid == CHAR_UUID_KI) {
+            tuning.ki = fmax(0.001, fmin(1.0, value));
+            char_ki->setValue(tuning.ki);
+        }
+        else if (uuid == CHAR_UUID_KD) {
+            tuning.kd = fmax(0.001, fmin(0.5, value));
+            char_kd->setValue(tuning.kd);
+        }
+        else if (uuid == CHAR_UUID_TARGET_RPM) {
+            motor_state.target_rpm = fmax(0, fmin(10000, value));
+            foc_set_rpm(motor_state.target_rpm);
+            char_target_rpm->setValue(motor_state.target_rpm);
+        }
+        else if (uuid == CHAR_UUID_CONTROL_MODE) {
+            tuning.control_mode = (uint8_t)value;
+            char_control_mode->setValue((float)tuning.control_mode);
+        }
+        else if (uuid == CHAR_UUID_AUTOLEARN) {
+            uint8_t cmd = (uint8_t)value;
+            handle_autolearn_command(cmd);
+        }
+        else if (uuid == CHAR_UUID_MOTOR_BRAKE) {
+            // value != 0 => liga o freio motor (regeneração), 0 => desliga (roda livre)
+            motor_state.motor_brake = (value != 0);
+            char_motor_brake->setValue(motor_state.motor_brake ? 1.0f : 0.0f);
+            Serial.printf("[BLE] Motor brake %s\n", motor_state.motor_brake ? "ON (regen)" : "OFF (coast)");
+        }
+        
+        xSemaphoreGive(state_mutex);
+        
+        // Save to EEPROM
+        eeprom_save_config();
+    }
+    
+    void onRead(BLECharacteristic *pCharacteristic) override {
+        std::string uuid = pCharacteristic->getUUID().toString();
+        Serial.printf("[BLE] Read: %s\n", uuid.c_str());
+    }
+};
+
+class ConnectionCallbacks: public BLEServerCallbacks {
+public:
+    void onConnect(BLEServer* pServer) override {
+        Serial.println("[BLE] Client connected!");
+        motor_state.error_code &= ~0x80;  // Clear disconnection flag
+    }
+    
+    void onDisconnect(BLEServer* pServer) override {
+        Serial.println("[BLE] Client disconnected");
+        motor_state.error_code |= 0x80;   // Set disconnection flag
+    }
+};
+
+// ============ AUTO-LEARN COMMAND HANDLER ============
+
+void handle_autolearn_command(uint8_t cmd) {
+    /*
+     * Auto-learn commands:
+     * 0 = Disabled
+     * 1 = Start relay auto-tuning (30 seconds)
+     * 2 = Enable continuous learning
+     * 3 = Stop learning
+     * 4 = Reset to defaults
+     * 5 = Set objective (power=1, efficiency=2, smoothness=3, balanced=0)
+     */
+    
+    switch(cmd) {
+        case 0:
+            autolearn_enable_learning(false);
+            Serial.println("[AutoLearn] Disabled");
+            break;
+        case 1:
+            autolearn_request_tuning();
+            Serial.println("[AutoLearn] Relay tuning started");
+            break;
+        case 2:
+            autolearn_enable_learning(true);
+            Serial.println("[AutoLearn] Continuous learning enabled");
+            break;
+        case 3:
+            autolearn_enable_learning(false);
+            Serial.println("[AutoLearn] Learning stopped");
+            break;
+        case 4:
+            xSemaphoreTake(state_mutex, portMAX_DELAY);
+            tuning.kp = 0.6;
+            tuning.ki = 0.1;
+            tuning.kd = 0.05;
+            xSemaphoreGive(state_mutex);
+            eeprom_save_config();
+            Serial.println("[AutoLearn] Reset to defaults");
+            break;
+        default:
+            // If value > 100, treat as objective setting
+            if (cmd > 100) {
+                uint8_t objective = cmd - 100;
+                autolearn_set_objective(objective);
+            }
+            break;
+    }
+}
+
+// ============ TELEMETRY PUBLISHING ============
+
+void ble_publish_telemetry(void) {
+    /*
+     * Send motor telemetry via BLE notifications (100 Hz)
+     * Called from Bluetooth task
+     */
+    
+    if (ble_server == NULL || !ble_server->getConnectedCount()) {
+        return;  // No client connected
+    }
+    
+    // Read motor state safely
+    xSemaphoreTake(state_mutex, portMAX_DELAY);
+    
+    // Publish telemetry
+    float rpm = motor_state.actual_rpm;
+    float current_rms = sqrt(motor_state.actual_current_u * motor_state.actual_current_u +
+                              motor_state.actual_current_v * motor_state.actual_current_v) / sqrt(2.0);
+    float temperature = motor_state.temperature_motor;
+    float voltage = motor_state.dc_voltage;
+    
+    // Pack status byte
+    uint8_t status = 0;
+    if (motor_state.error_code != 0) status |= 0x01;
+    if (motor_state.target_rpm != 0) status |= 0x02;
+    
+    xSemaphoreGive(state_mutex);
+    
+    // Send notifications
+    if (char_rpm) {
+        char_rpm->setValue(rpm);
+        char_rpm->notify();
+    }
+    if (char_current) {
+        char_current->setValue(current_rms);
+        char_current->notify();
+    }
+    if (char_temperature) {
+        char_temperature->setValue(temperature);
+        char_temperature->notify();
+    }
+    if (char_voltage) {
+        char_voltage->setValue(voltage);
+        char_voltage->notify();
+    }
+    if (char_status) {
+        char_status->setValue(status);
+        char_status->notify();
+    }
+}
+
+// ============ BLE INITIALIZATION ============
+
+void ble_init(void) {
+    Serial.println("[BLE] Initializing Bluetooth LE...");
+    
+    // Initialize BLE device
+    BLEDevice::init("MotorControl-v3.0");
+    
+    // Create server
+    ble_server = BLEDevice::createServer();
+    ble_server->setCallbacks(new ConnectionCallbacks());
+    
+    // ===== SERVICE 1: Motor Status (Telemetry) =====
+    ble_service_motor = ble_server->createService(SERVICE_UUID_MOTOR);
+    
+    // RPM characteristic
+    char_rpm = ble_service_motor->createCharacteristic(
+        CHAR_UUID_RPM,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    char_rpm->addDescriptor(new BLE2902());
+    char_rpm->setValue(0.0f);
+    
+    // Current characteristic
+    char_current = ble_service_motor->createCharacteristic(
+        CHAR_UUID_CURRENT,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    char_current->addDescriptor(new BLE2902());
+    char_current->setValue(0.0f);
+    
+    // Temperature characteristic
+    char_temperature = ble_service_motor->createCharacteristic(
+        CHAR_UUID_TEMPERATURE,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    char_temperature->addDescriptor(new BLE2902());
+    {float temp = 25.0f; char_temperature->setValue(temp);}
+    
+    // Voltage characteristic
+    char_voltage = ble_service_motor->createCharacteristic(
+        CHAR_UUID_VOLTAGE,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    char_voltage->addDescriptor(new BLE2902());
+    {float volt = 400.0f; char_voltage->setValue(volt);}
+    
+    // Status characteristic
+    char_status = ble_service_motor->createCharacteristic(
+        CHAR_UUID_STATUS,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    char_status->addDescriptor(new BLE2902());
+    {int stat = 0; char_status->setValue(stat);}
+    
+    ble_service_motor->start();
+    
+    // ===== SERVICE 2: Tuning (Control) =====
+    ble_service_tuning = ble_server->createService(SERVICE_UUID_TUNING);
+    
+    // Kp tuning
+    char_kp = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_KP,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_kp->setCallbacks(new MotorControlCallbacks());
+    {float kp = 0.6f; char_kp->setValue(kp);}
+    
+    // Ki tuning
+    char_ki = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_KI,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_ki->setCallbacks(new MotorControlCallbacks());
+    {float ki = 0.1f; char_ki->setValue(ki);}
+    
+    // Kd tuning
+    char_kd = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_KD,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_kd->setCallbacks(new MotorControlCallbacks());
+    {float kd = 0.05f; char_kd->setValue(kd);}
+    
+    // Target RPM
+    char_target_rpm = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_TARGET_RPM,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_target_rpm->setCallbacks(new MotorControlCallbacks());
+    {float rpm = 0.0f; char_target_rpm->setValue(rpm);}
+    
+    // Control mode
+    char_control_mode = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_CONTROL_MODE,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_control_mode->setCallbacks(new MotorControlCallbacks());
+    {float mode = 0.0f; char_control_mode->setValue(mode);}
+    
+    // Auto-learn control
+    char_autolearn = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_AUTOLEARN,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_autolearn->setCallbacks(new MotorControlCallbacks());
+    {float al = 0.0f; char_autolearn->setValue(al);}
+    
+    // Motor brake / regenerative braking toggle
+    char_motor_brake = ble_service_tuning->createCharacteristic(
+        CHAR_UUID_MOTOR_BRAKE,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    char_motor_brake->setCallbacks(new MotorControlCallbacks());
+    {float mb = motor_state.motor_brake ? 1.0f : 0.0f; char_motor_brake->setValue(mb);}
+    
+    ble_service_tuning->start();
+    
+    // ===== START ADVERTISING =====
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID_MOTOR);
+    pAdvertising->addServiceUUID(SERVICE_UUID_TUNING);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x06);
+    pAdvertising->start();
+    
+    Serial.println("[BLE] ✅ Bluetooth LE initialized - advertising as 'MotorControl-v3.0'");
+}
+
+// ============ END OF FILE ============

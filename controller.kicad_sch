@@ -1,0 +1,67 @@
+(kicad_sch (version 20230121)
+
+  (uuid "00000000-0000-0000-0000-000000000001")
+
+  (paper "A4")
+
+  (title_block
+    (title "PMSM/BLDC Motor Controller")
+    (date "2026-08-14")
+    (rev "1.0")
+    (company "OpenCode")
+    (comment 1 "Universal Motor Controller")
+    (comment 2 "400V 50A")
+    (comment 3 "20kW Peak Power")
+    (comment 4 "")
+  )
+
+  (lib_symbols
+    (symbol "Connector:Conn_01x02_Pin"
+      (pin_names (offset 1.016) hide)
+      (property "Reference" "J" (at 0 2.54 0)
+        (effects (font (size 1.27 1.27)) (justify left)))
+      )
+      (property "Value" "Conn_01x02_Pin" (at 0 -5.08 0)
+        (effects (font (size 1.27 1.27)) (justify left)))
+      )
+      (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "~" (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "Conn_01x02_Pin_1_1"
+        (rectangle (start -1.27 -2.413) (end 0 -2.667)
+          (stroke (width 0.254) (type default)) (fill (type none))
+        )
+        (rectangle (start -1.27 0.127) (end 0 -0.127)
+          (stroke (width 0.254) (type default)) (fill (type none))
+        )
+        (rectangle (start -1.27 1.27) (end 1.27 -3.81)
+          (stroke (width 0.254) (type default)) (fill (type background))
+        )
+        (pin passive line (at -5.08 0 0) (length 3.81) (name "Pin_1" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+        (pin passive line (at -5.08 -2.54 0) (length 3.81) (name "Pin_2" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+      )
+    )
+  )
+
+  (wire (pts (xy 100 100) (xy 150 100)) (stroke (width 0)) (uuid "00000001"))
+  (wire (pts (xy 100 150) (xy 150 150)) (stroke (width 0)) (uuid "00000002"))
+
+  (junction (at 100 100) (diameter 0) (color 0 0 0 0) (uuid "00000003"))
+
+  (text "Controladora PMSM/BLDC\n400V 50A 20kW" (at 50 50 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "00000004")
+  )
+
+  (text "57 Componentes do BOM\nProto vtype v1.0" (at 50 200 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid "00000005")
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

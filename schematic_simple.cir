@@ -1,0 +1,104 @@
+* Simplified 3-Phase BLDC Inverter Simulation
+* Objective: Validate basic switching, current ripple, thermal
+
+.title Simplified 3-Phase BLDC Inverter - 50A/400V
+
+* ============= POWER SUPPLY =============
+Vdc vdc gnd DC 400
+
+* DC link capacitor
+Cbulk vdc gnd 470u IC=400
+
+* ============= PWM CONTROL SIGNALS (20 kHz) =============
+* Phase U (0°)
+Vpwm_u gate_u gnd PULSE(0 15 0 100n 100n 25u 50u)
+
+* Phase V (120° offset = 16.67µs)
+Vpwm_v gate_v gnd PULSE(0 15 16.67u 100n 100n 25u 50u)
+
+* Phase W (240° offset = 33.33µs)
+Vpwm_w gate_w gnd PULSE(0 15 33.33u 100n 100n 25u 50u)
+
+* ============= GATE DRIVER (DRV8302 simulation) =============
+* High-side gates (pass through PWM)
+Bgate_hs_u gate_hs_u gnd V=V(gate_u)>7.5 ? 15 : 0
+Bgate_hs_v gate_hs_v gnd V=V(gate_v)>7.5 ? 15 : 0
+Bgate_hs_w gate_hs_w gnd V=V(gate_w)>7.5 ? 15 : 0
+
+* Low-side gates (inverted PWM)
+Bgate_ls_u gate_ls_u gnd V=V(gate_u)<7.5 ? 15 : 0
+Bgate_ls_v gate_ls_v gnd V=V(gate_v)<7.5 ? 15 : 0
+Bgate_ls_w gate_ls_w gnd V=V(gate_w)<7.5 ? 15 : 0
+
+* ============= MOSFET BRIDGE =============
+* High-side switches (VDS=0 to 400V)
+Shs_u vdc phase_u gate_hs_u gnd Sw_mosfet
+Shs_v vdc phase_v gate_hs_v gnd Sw_mosfet
+Shs_w vdc phase_w gate_hs_w gnd Sw_mosfet
+
+* Low-side switches (VDS=0 to 400V)
+Sls_u phase_u gnd gate_ls_u gnd Sw_mosfet
+Sls_v phase_v gnd gate_ls_v gnd Sw_mosfet
+Sls_w phase_w gnd gate_ls_w gnd Sw_mosfet
+
+* MOSFET model (on-resistance 0.01 Ohm for 50A capability)
+.model Sw_mosfet SW(VT=5 VH=2 RON=0.01 ROFF=1e9)
+
+* ============= MOTOR PHASE LOADS =============
+* Simplified: RL load per phase (inductor + resistor)
+* L = 100µH (motor phase inductance)
+* R = 0.1 Ohm (winding resistance)
+
+* Phase U
+Lphase_u phase_u load_u 100u IC=0
+Rphase_u load_u gnd 0.1
+
+* Phase V
+Lphase_v phase_v load_v 100u IC=0
+Rphase_v load_v gnd 0.1
+
+* Phase W
+Lphase_w phase_w load_w 100u IC=0
+Rphase_w load_w gnd 0.1
+
+* ============= CURRENT SENSING (Shunt 0.001 Ohm = 1mV per 1A) =============
+* Inserted in series with high-side output
+Rshunt_u phase_u sense_u 0.001
+Rshunt_v phase_v sense_v 0.001
+Rshunt_w phase_w sense_w 0.001
+
+* ============= FILTERING (Ferrite beads) =============
+Cfilter_u sense_u gnd 10n
+Cfilter_v sense_v gnd 10n
+Cfilter_w sense_w gnd 10n
+
+* ============= MEASUREMENTS =============
+* Peak currents (via shunt voltage)
+.measure tran I_peak_u_mv MAX V(sense_u)
+.measure tran I_peak_v_mv MAX V(sense_v)
+.measure tran I_peak_w_mv MAX V(sense_w)
+
+* DC link ripple
+.measure tran Vdc_ripple PP V(vdc)
+.measure tran Vdc_min MIN V(vdc)
+.measure tran Vdc_max MAX V(vdc)
+
+* Phase voltages
+.measure tran Vphase_u_peak MAX V(phase_u)
+.measure tran Vphase_u_min MIN V(phase_u)
+
+* Power consumption (from DC source)
+.measure tran Power_avg AVG V(vdc)*I(Vdc)
+.measure tran Power_peak MAX ABS(V(vdc)*I(Vdc))
+
+* ============= TRANSIENT SIMULATION =============
+* Run 2.5ms (125 PWM cycles @ 20kHz)
+.tran 0.1u 2.5m 1u
+
+* ============= OUTPUT OPTIONS =============
+.print tran V(phase_u) V(phase_v) V(phase_w) V(vdc) I(Vdc)
+.plot tran V(phase_u) V(phase_v) V(phase_w)
+
+* ============= END =============
+.end
+

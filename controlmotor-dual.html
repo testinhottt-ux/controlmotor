@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotorControl — Dual Mode (Simulação + Real)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1; --primary-dark: #4f46e5; --accent: #ec4899;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --real: #8b5cf6; --sim: #06b6d4;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9; padding: 20px; min-height: 100vh;
+            font-size: 18px;
+        }
+        .container {
+            max-width: 1600px; margin: 0 auto;
+            background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(20px);
+            border-radius: 20px; border: 1px solid rgba(148, 163, 184, 0.1);
+            padding: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .mode-toggle {
+            display: flex; gap: 15px; justify-content: center; align-items: center;
+            margin-bottom: 30px; padding: 20px;
+            background: rgba(51, 65, 85, 0.3); border-radius: 12px; flex-wrap: wrap;
+        }
+        .mode-btn {
+            padding: 12px 30px; border: 2px solid transparent; border-radius: 8px;
+            font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 14px;
+        }
+        .mode-btn.simulation {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white; border-color: #06b6d4;
+        }
+        .mode-btn.simulation:hover {
+            transform: translateY(-2px); box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+        }
+        .mode-btn.real {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white; border-color: #8b5cf6;
+        }
+        .mode-btn.real:hover {
+            transform: translateY(-2px); box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+        .mode-indicator {
+            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .mode-indicator.sim {
+            background: rgba(6, 182, 212, 0.2); color: #06b6d4;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        .mode-indicator.real {
+            background: rgba(139, 92, 246, 0.2); color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .mode-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        }
+        .mode-dot.sim { background: #06b6d4; animation: pulse 2s infinite; }
+        .mode-dot.real { background: #8b5cf6; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+         .logo {
+             font-size: 42px; font-weight: 700;
+             background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+             background-clip: text; margin-bottom: 10px;
+         }
+         .subtitle {
+             font-size: 18px; color: #94a3b8; letter-spacing: 0.5px;
+         }
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;
+        }
+        @media (max-width: 1200px) { .grid { grid-template-columns: 1fr; } }
+        .card {
+            background: rgba(51, 65, 85, 0.5); border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px; padding: 24px; transition: all 0.3s ease;
+        }
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.3); background: rgba(51, 65, 85, 0.7);
+        }
+         .card-title {
+             font-size: 22px; font-weight: 700; margin-bottom: 20px;
+             display: flex; align-items: center; gap: 10px; color: #f1f5f9;
+         }
+        .card-title::before {
+            content: ''; width: 4px; height: 20px;
+            background: linear-gradient(180deg, #6366f1 0%, #ec4899 100%); border-radius: 2px;
+        }
+        .throttle-section { margin-bottom: 30px; }
+        .throttle-value {
+            font-size: 56px; font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; text-align: center; margin-bottom: 15px;
+            font-variant-numeric: tabular-nums;
+        }
+         .throttle-label {
+             text-align: center; font-size: 16px; color: #94a3b8;
+             text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: 600;
+         }
+        .slider {
+            width: 100%; height: 8px; border-radius: 4px;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+            outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 24px; height: 24px; border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        .slider::-moz-range-thumb {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+        }
+        .metric {
+            background: rgba(51, 65, 85, 0.3); border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px; padding: 15px;
+        }
+         .metric-label {
+             font-size: 14px; text-transform: uppercase; color: #94a3b8;
+             letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;
+         }
+         .metric-value {
+             font-size: 32px; font-weight: 700; color: #06b6d4;
+             font-variant-numeric: tabular-nums; margin-bottom: 6px;
+         }
+         .metric-unit { font-size: 14px; color: #64748b; font-weight: 500; }
+        .metric-bar {
+            width: 100%; height: 3px; background: rgba(99, 102, 241, 0.1);
+            border-radius: 2px; overflow: hidden; margin-top: 8px;
+        }
+        .metric-bar-fill {
+            height: 100%; background: linear-gradient(90deg, #06b6d4, #06b6d4);
+            border-radius: 2px; transition: width 0.3s ease-out;
+        }
+        .button-group {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px;
+        }
+        @media (max-width: 600px) { .button-group { grid-template-columns: 1fr; } }
+         button {
+             padding: 14px 24px; border: none; border-radius: 8px; font-weight: 600;
+             cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+             transition: all 0.3s ease; font-size: 15px;
+         }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            color: white; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px); box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626); color: white;
+        }
+        .btn-danger:hover { transform: translateY(-2px); }
+        .chart-container {
+            position: relative; height: 300px;
+            background: rgba(51, 65, 85, 0.3); border-radius: 12px; padding: 15px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        .param-group { margin-bottom: 20px; }
+        .param-header {
+            display: flex; justify-content: space-between; margin-bottom: 8px;
+        }
+         .param-label {
+             font-size: 15px; font-weight: 600; text-transform: uppercase; color: #f1f5f9;
+         }
+         .param-value {
+             font-size: 16px; font-weight: 700; color: #06b6d4; font-family: monospace;
+         }
+        .param-slider {
+            width: 100%; height: 6px; border-radius: 3px;
+            background: rgba(99, 102, 241, 0.2); -webkit-appearance: none;
+            appearance: none; cursor: pointer;
+        }
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 14px; height: 14px; border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #06b6d4);
+            cursor: pointer; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+        }
+        .status-section {
+            padding: 15px; background: rgba(51, 65, 85, 0.3);
+            border-radius: 8px; border-left: 4px solid #06b6d4; margin-top: 20px;
+        }
+         .status-text { font-size: 16px; color: #cbd5e1; line-height: 1.8; }
+         .status-text strong { color: #f1f5f9; font-size: 17px; }
+        
+        /* Módulos Simulados */
+        .modules-panel {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+        .module-card {
+            background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 10px; padding: 12px; font-size: 11px;
+        }
+         .module-name {
+             font-weight: 700; color: #06b6d4; margin-bottom: 8px; font-size: 15px;
+         }
+        .io-row {
+            display: flex; justify-content: space-between; padding: 4px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        .io-row:last-child { border-bottom: none; }
+        .io-label { color: #94a3b8; font-size: 14px; }
+        .io-value { color: #06b6d4; font-family: monospace; font-weight: 600; font-size: 14px; }
+        
+        /* Tooltips */
+        .tooltip-trigger {
+            cursor: help; color: #f59e0b; font-weight: 700; margin-left: 6px;
+            display: inline-block; width: 20px; height: 20px;
+            line-height: 20px; text-align: center; border-radius: 50%;
+            border: 2px solid #f59e0b; font-size: 12px;
+        }
+        .tooltip-trigger:hover::after {
+            content: attr(data-tip);
+            position: absolute; background: #1e293b; color: #fbbf24;
+            padding: 12px; border-radius: 8px; width: 250px;
+            border: 1px solid #f59e0b; z-index: 1000;
+            font-size: 13px; line-height: 1.5; font-weight: normal;
+            margin-top: 10px; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+        }
+        
+        .help-section {
+            background: rgba(139, 92, 246, 0.1); border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px; padding: 20px; margin-bottom: 30px;
+        }
+        .help-title {
+            font-size: 20px; font-weight: 700; color: #a78bfa; margin-bottom: 15px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .help-content {
+            font-size: 16px; line-height: 1.8; color: #cbd5e1;
+        }
+        .help-content strong { color: #f1f5f9; }
+        .help-bullet { margin: 12px 0; padding-left: 20px; }
+        .help-bullet::before { content: "→ "; color: #a78bfa; font-weight: 700; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">⚡ MotorControl Dual</div>
+            <div class="subtitle">Simulação + Hardware Real em Tempo Real</div>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+            <button class="mode-btn simulation active" id="btnSimulation">🔷 Modo Simulação</button>
+            <button class="mode-btn real" id="btnReal">🟣 Modo Real (Hardware)</button>
+            <div class="mode-indicator sim" id="modeIndicator">
+                <span class="mode-dot sim"></span>
+                <span id="modeText">Simulação Ativa</span>
+            </div>
+        </div>
+
+        <!-- SIMULATION MODE -->
+         <div class="content-section active" id="simulationMode">
+            <!-- Help Section: Auto-Learn Explanation -->
+             <div class="help-section">
+                 <div class="help-title">🤖 O Que é Auto-Learn (Sintonia Automática)?</div>
+                 <div class="help-content">
+                     <strong>Auto-Learn é a otimização automática dos ganhos PID</strong> (Kp, Ki, Kd) de seu controlador para qualquer motor, sem ajuste manual.
+                     <div class="help-bullet"><strong>Como funciona:</strong> Usa o método <strong>Ziegler-Nichols com relay</strong> (astrom-Hagglund) - encontra a estabilidade do sistema através de oscilações controladas</div>
+                     <div class="help-bullet"><strong>Benefícios:</strong> Motor responde rápido + estável + funciona com qualquer motor do mercado (100W até 10kW)</div>
+                     <div class="help-bullet"><strong>Fases:</strong> <strong>Fase 1</strong> (soft start) → <strong>Fase 2</strong> (oscilação) → <strong>Fase 3</strong> (refinement)</div>
+                     <div class="help-bullet"><strong>Proteções:</strong> Rate-limit (3000 RPM/s), Hysteresis adaptativa, Timeout automático</div>
+                 </div>
+             </div>
+             
+             <div class="grid">
+                <!-- Control Panel -->
+                <div class="card">
+                    <div class="card-title">🎮 Controle de Simulação</div>
+                    
+                    <!-- Motor & Battery Selection -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                        <div>
+                             <label style="font-size: 16px; font-weight: 600; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 6px;">🔷 Motor</label>
+                             <select id="motorSelect" style="width: 100%; padding: 12px; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(51, 65, 85, 0.5); color: #f1f5f9; border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 16px;">
+                                <option value="small">Small (100W)</option>
+                                <option value="medium" selected>Medium (500W)</option>
+                                <option value="large">Large (1kW)</option>
+                            </select>
+                        </div>
+                        <div>
+                             <label style="font-size: 16px; font-weight: 600; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 6px;">🔋 Bateria</label>
+                             <select id="batterySelect" style="width: 100%; padding: 12px; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(51, 65, 85, 0.5); color: #f1f5f9; border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 16px;">
+                                <option value="lipo" selected>LiPo 48V</option>
+                                <option value="lifepo4">LiFePO4 48V</option>
+                                <option value="lead-acid">Lead-Acid 48V</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Motor & Battery Info -->
+                     <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 15px; margin-bottom: 15px; font-size: 15px;">
+                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                             <div>
+                                 <span style="color: #94a3b8; font-size: 14px; text-transform: uppercase;">Motor:</span> <span id="motorInfo" style="color: #06b6d4; font-weight: 600; font-size: 17px; display: block; margin-top: 4px;">Medium BLDC (500W)</span>
+                                 <span style="color: #94a3b8; font-size: 14px;">Max RPM:</span> <span id="motorRpmMax" style="color: #06b6d4; font-size: 16px;">4000</span>
+                             </div>
+                             <div>
+                                  <span style="color: #94a3b8; font-size: 14px; text-transform: uppercase;">Bateria:</span> <span id="batteryInfo" style="color: #06b6d4; font-weight: 600; font-size: 17px; display: block; margin-top: 4px;">LiPo 48V</span>
+                                  <span style="color: #94a3b8; font-size: 14px;">Max I:</span> <span id="batteryMaxI" style="color: #06b6d4; font-size: 16px;">100A</span>
+                                  <span style="color: #94a3b8; font-size: 14px;">SOC:</span> <span id="batterySoc" style="color: #10b981; font-weight: 600; font-size: 16px;">85%</span>
+                                  <span style="color: #94a3b8; font-size: 14px;">Regeneração:</span> <span id="regenDisplay" style="color: #f59e0b; font-weight: 600; font-size: 16px;">0.0 W</span>
+                             </div>
+                         </div>
+                     </div>
+                    
+                    <div class="throttle-section">
+                         <div class="throttle-value" id="throttleDisplay">0</div>
+                         <div class="throttle-label">Acelerador (%)</div>
+                         <input type="range" id="throttleSim" class="slider" min="0" max="100" value="0" step="1">
+                     </div>
+
+                     <!-- Freio Motor -->
+                     <div class="throttle-section" style="margin-top: 20px;">
+                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                             <span style="font-size: 16px; font-weight: 600; color: #f1f5f9;">🛑 Freio Motor / Regeneração</span>
+                             <button id="btnMotorBrake" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px;">⚡ ATIVO</button>
+                         </div>
+                         <div class="throttle-label">Torque de Freio (N·m): <span id="brakeDisplay" style="color: #ef4444; font-weight: 700;">0</span></div>
+                         <input type="range" id="brakeSim" class="slider" min="0" max="5" value="0" step="0.1">
+                         <div style="font-size: 13px; color: #94a3b8; margin-top: 8px;">Freio motor ativo = frenagem + regeneração. OFF = roda livre (coast).</div>
+                     </div>
+
+                     <div class="button-group">
+                         <button class="btn-primary" id="btnStartSim">▶ Iniciar Simulação</button>
+                         <button class="btn-secondary" id="btnAutoLearnSim">🤖 Auto-Learn <span class="tooltip-trigger" data-tip="Otimiza automaticamente os ganhos PID (Kp/Ki/Kd) usando oscilações para encontrar valores ideais - Método Ziegler-Nichols com Relay">?</span></button>
+                         <button class="btn-danger" id="btnStopSim">⊘ Parar</button>
+                     </div>
+
+                    <div class="status-section">
+                        <div class="status-text">
+                            <strong>Status:</strong> <span id="simStatus">Parado</span><br>
+                            <strong>Taxa:</strong> <span id="simRate">-- Hz</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Telemetry -->
+                <div class="card">
+                    <div class="card-title">📊 Telemetria (Simulação)</div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <div class="metric-label">RPM</div>
+                            <div class="metric-value" id="simRpm">0</div>
+                            <div class="metric-unit">rpm</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimRpm" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">RPM Alvo (Setpoint)</div>
+                            <div class="metric-value" id="simRpmTarget">0</div>
+                            <div class="metric-unit">rpm</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimRpmTarget" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Erro de Regulação</div>
+                            <div class="metric-value" id="simErrorPct">--</div>
+                            <div class="metric-unit">%</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimError" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Corrente</div>
+                            <div class="metric-value" id="simCurrent">0.0</div>
+                            <div class="metric-unit">A</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimCurrent" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Corrente Média</div>
+                            <div class="metric-value" id="simMeanCurrent">0.0</div>
+                            <div class="metric-unit">A</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimMeanCurrent" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Torque</div>
+                            <div class="metric-value" id="simTorque">0.0</div>
+                            <div class="metric-unit">N·m</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimTorque" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Temperatura Motor</div>
+                            <div class="metric-value" id="simTemp">25</div>
+                            <div class="metric-unit">°C</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimTemp" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Temperatura Driver</div>
+                            <div class="metric-value" id="simTempDriver">25</div>
+                            <div class="metric-unit">°C</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimTempDriver" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Tensão</div>
+                            <div class="metric-value" id="simVoltage">380</div>
+                            <div class="metric-unit">V</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimVoltage" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Potência</div>
+                            <div class="metric-value" id="simPower">0.0</div>
+                            <div class="metric-unit">kW</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimPower" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Erro Integral (Anti-Windup)</div>
+                            <div class="metric-value" id="simErrInt">0.0</div>
+                            <div class="metric-unit">A·s</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimErrInt" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Fault Code</div>
+                            <div class="metric-value" id="simFault">0x00</div>
+                            <div class="metric-unit">OK</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barSimFault" style="width: 0%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Módulos Simulados -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">🔧 Módulos Simulados (I/O em Tempo Real)</div>
+                <div class="modules-panel">
+                    <div class="module-card">
+                        <div class="module-name">🔷 Motor BLDC</div>
+                        <div class="io-row">
+                            <span class="io-label">J (inércia)</span>
+                            <span class="io-value">0.005 kg·m²</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Kt (torque)</span>
+                            <span class="io-value">0.28 N·m/A</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">RPM → Saída</span>
+                            <span class="io-value" id="mod_motor_rpm">0</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Torque → Saída</span>
+                            <span class="io-value" id="mod_motor_torque">0.0 N·m</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-name">⚙️ FOC Controller</div>
+                        <div class="io-row">
+                            <span class="io-label">Entrada: Throttle</span>
+                            <span class="io-value" id="mod_foc_throttle">0%</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Entrada: Kp</span>
+                            <span class="io-value" id="mod_foc_kp">0.50</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Saída: U-phase</span>
+                            <span class="io-value" id="mod_foc_u">0 V</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Status: PI Loops</span>
+                            <span class="io-value">✓ Ativo</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-name">🔋 Battery Model</div>
+                        <div class="io-row">
+                            <span class="io-label">Vnom</span>
+                            <span class="io-value">48 V</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">ESR</span>
+                            <span class="io-value">0.05 Ω</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Entrada: I</span>
+                            <span class="io-value" id="mod_batt_i">0.0 A</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Saída: V (real)</span>
+                            <span class="io-value" id="mod_batt_v">48.0 V</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-name">🌡️ Thermal Model</div>
+                        <div class="io-row">
+                            <span class="io-label">Ambient</span>
+                            <span class="io-value">25 °C</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Entrada: P_diss</span>
+                            <span class="io-value" id="mod_therm_p">0.0 W</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Saída: T_motor</span>
+                            <span class="io-value" id="mod_therm_t">25 °C</span>
+                        </div>
+                        <div class="io-row">
+                            <span class="io-label">Tau (RC)</span>
+                            <span class="io-value">2.0 s</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                         <div class="module-name">🤖 Auto-Learner (Ziegler-Nichols)</div>
+                         <div class="io-row">
+                             <span class="io-label">Status</span>
+                             <span class="io-value" id="mod_learn_status">Inativo</span>
+                         </div>
+                         <div style="background: rgba(99, 102, 241, 0.1); border-radius: 6px; padding: 8px; margin: 8px 0;">
+                             <span class="io-label" style="display: block; margin-bottom: 6px;">Progresso</span>
+                             <div style="width: 100%; height: 12px; background: rgba(99, 102, 241, 0.2); border-radius: 6px; overflow: hidden;">
+                                 <div id="autoLearnProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #06b6d4, #06b6d4); transition: width 0.3s ease;"></div>
+                             </div>
+                             <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                                 <span id="autoLearnPercent">0%</span> - <span id="autoLearnPhase">--</span>
+                             </div>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Kp_final</span>
+                             <span class="io-value" id="mod_learn_kp">--</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Ki_final</span>
+                             <span class="io-value" id="mod_learn_ki">--</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Kd_final</span>
+                             <span class="io-value" id="mod_learn_kd">--</span>
+                         </div>
+                     </div>
+
+                     <div class="module-card">
+                         <div class="module-name">🛡️ Proteções + Freio</div>
+                         <div class="io-row">
+                             <span class="io-label">OC Limit</span>
+                             <span class="io-value">50 A</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Thermal Limit</span>
+                             <span class="io-value">80 °C</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Fault Code</span>
+                             <span class="io-value" id="mod_protect_fault">0x00 OK</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Freio Status</span>
+                             <span class="io-value" id="mod_protect_brake">OFF (0 N·m)</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Estado Motor</span>
+                             <span class="io-value" id="mod_protect_state">IDLE</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Perfil Salvo</span>
+                             <span class="io-value" id="profileStatus">--</span>
+                         </div>
+                         <div class="io-row">
+                             <span class="io-label">Segurança</span>
+                             <span class="io-value" id="safetyWarnings" style="font-size: 12px; line-height: 1.4; text-align: right;">✅ Parâmetros na faixa segura</span>
+                         </div>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Tuning Parameters -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">⚙️ Tuning Parameters (Controladora PID)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Column 1: PID Gains -->
+                    <div>
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Kp (Proporcional)</span>
+                                <span class="param-value" id="displayKpLive">0.30</span>
+                            </div>
+                            <input type="range" id="sliderKpLive" class="param-slider" min="0.01" max="2.0" step="0.01" value="0.30">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Resposta rápida. ↑ = mais agressivo</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Ki (Integral)</span>
+                                <span class="param-value" id="displayKiLive">0.03</span>
+                            </div>
+                            <input type="range" id="sliderKiLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.03">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Elimina erro em regime. ↑ = mais integral</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Kd (Derivativa)</span>
+                                <span class="param-value" id="displayKdLive">0.01</span>
+                            </div>
+                            <input type="range" id="sliderKdLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.01">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Amortecimento. ↑ = menos overshoot</div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Setpoints & Config -->
+                    <div>
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">RPM Target</span>
+                                <span class="param-value" id="displayRpmTarget">3000</span>
+                            </div>
+                            <input type="range" id="sliderRpmTarget" class="param-slider" min="1000" max="7000" step="100" value="3000">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Alvo de velocidade do motor</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">AutoLearn Duration (s)</span>
+                                <span class="param-value" id="displayAutoLearnDuration">2.0</span>
+                            </div>
+                            <input type="range" id="sliderAutoLearnDuration" class="param-slider" min="0.5" max="5.0" step="0.5" value="2.0">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Tempo de sintonia automática</div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                            <button style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnResetParams">🔄 Reset Padrão</button>
+                            <button style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnApplyParams">✓ Aplicar + Salvar</button>
+                            <button style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; grid-column: 1 / -1;" id="btnSaveProfile">💾 Salvar Perfil (auto-learn não precisa repetir)</button>
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 8px; text-align: center;">
+                            💡 O Auto-Learn roda uma única vez. Os ganhos ficam salvos e são recarregados ao abrir a página.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">📈 Histórico (60s)</div>
+                <div class="chart-container">
+                    <canvas id="chartSim"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- REAL MODE -->
+        <div class="content-section" id="realMode">
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">🔌 Controle Hardware Real</div>
+                    
+                    <div class="throttle-section">
+                        <div class="throttle-value" id="throttleDisplayReal">0</div>
+                        <div class="throttle-label">Acelerador (%)</div>
+                        <input type="range" id="throttleReal" class="slider" min="0" max="100" value="0" step="1">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" id="btnStartReal">▶ Conectar</button>
+                        <button class="btn-secondary" id="btnAutoLearnReal">🤖 Calibrar</button>
+                        <button class="btn-danger" id="btnStopReal">⊘ Desconectar</button>
+                    </div>
+
+                    <div class="status-section">
+                        <div class="status-text">
+                            <strong>Conexão:</strong> <span id="realStatus">Desconectado</span><br>
+                            <strong>Firmware:</strong> <span id="firmwareVersion">--</span><br>
+                            <strong>Porta:</strong> <span id="comPort">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📊 Telemetria (Hardware Real)</div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <div class="metric-label">RPM</div>
+                            <div class="metric-value" id="realRpm">--</div>
+                            <div class="metric-unit">rpm</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealRpm" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Corrente</div>
+                            <div class="metric-value" id="realCurrent">--</div>
+                            <div class="metric-unit">A</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealCurrent" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Torque</div>
+                            <div class="metric-value" id="realTorque">--</div>
+                            <div class="metric-unit">N·m</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealTorque" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Temperatura</div>
+                            <div class="metric-value" id="realTemp">--</div>
+                            <div class="metric-unit">°C</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealTemp" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Tensão Bateria</div>
+                            <div class="metric-value" id="realVoltage">--</div>
+                            <div class="metric-unit">V</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealVoltage" style="width: 0%"></div></div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Potência</div>
+                            <div class="metric-value" id="realPower">--</div>
+                            <div class="metric-unit">kW</div>
+                            <div class="metric-bar"><div class="metric-bar-fill" id="barRealPower" style="width: 0%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">📈 Histórico Hardware (60s)</div>
+                <div class="chart-container">
+                    <canvas id="chartReal"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⚙️ Parâmetros PID (Hardware Real)</div>
+                
+                <div class="param-group">
+                    <div class="param-header">
+                        <span class="param-label">Proporcional (Kp)</span>
+                        <span class="param-value" id="displayKpReal">--</span>
+                    </div>
+                    <input type="range" id="sliderKpReal" class="param-slider" min="0.01" max="5" step="0.01" value="0.50" disabled>
+                </div>
+
+                <div class="param-group">
+                    <div class="param-header">
+                        <span class="param-label">Integral (Ki)</span>
+                        <span class="param-value" id="displayKiReal">--</span>
+                    </div>
+                    <input type="range" id="sliderKiReal" class="param-slider" min="0.001" max="1" step="0.001" value="0.10" disabled>
+                </div>
+
+                <div class="param-group">
+                    <div class="param-header">
+                        <span class="param-label">Derivativo (Kd)</span>
+                        <span class="param-value" id="displayKdReal">--</span>
+                    </div>
+                    <input type="range" id="sliderKdReal" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.05" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            API_BASE: 'http://localhost:8000',
+            API_SIMULATION: 'http://localhost:8000/api/simulate',
+            UPDATE_INTERVAL: 500
+        };
+
+        let state = {
+             mode: 'simulation',
+             simRunning: false,
+             realConnected: false,
+             throttle: 0,
+             brakeTorque: 0,  // Brake torque (N·m)
+             motorBrake: true,  // Motor brake / regen ON by default
+             kp: 0.30,
+             ki: 0.03,
+             kd: 0.01,
+             rpmTarget: 3000,
+             autoLearnDuration: 2.0,
+             motorType: 'medium',
+             batteryType: 'lipo',
+             histStart: null,      // timestamp do início da janela (ms)
+             history: []           // rolling buffer: {time_s, rpm, current} últimos 60 pontos
+         };
+        
+        let motorCatalog = {};
+         let batteryCatalog = {};
+         let brakeTorque = 0;  // Brake torque control
+
+        // ==================== LOAD MOTOR & BATTERY CATALOGS ====================
+        async function loadCatalogs() {
+            try {
+                const motorsResp = await fetch('http://localhost:8000/api/motors');
+                const motorsData = await motorsResp.json();
+                motorCatalog = motorsData.motors || {};
+                
+                const batteriesResp = await fetch('http://localhost:8000/api/batteries');
+                const batteriesData = await batteriesResp.json();
+                batteryCatalog = batteriesData.batteries || {};
+            } catch (error) {
+                console.error('Erro ao carregar catálogos:', error);
+            }
+        }
+        
+        // Call on startup
+        loadCatalogs();
+
+        // ==================== MOTOR & BATTERY SELECTION ====================
+        document.getElementById('motorSelect').addEventListener('change', (e) => {
+            state.motorType = e.target.value;
+            updateMotorInfo();
+        });
+
+        document.getElementById('batterySelect').addEventListener('change', (e) => {
+            state.batteryType = e.target.value;
+            updateBatteryInfo();
+        });
+
+        function updateMotorInfo() {
+            const motorNames = {
+                'small': 'Small BLDC (100W)',
+                'medium': 'Medium BLDC (500W)',
+                'large': 'Large BLDC (1kW)'
+            };
+            const maxRpms = {
+                'small': '3000',
+                'medium': '4000',
+                'large': '5000'
+            };
+            document.getElementById('motorInfo').textContent = motorNames[state.motorType] || 'Medium';
+            document.getElementById('motorRpmMax').textContent = maxRpms[state.motorType] || '4000';
+        }
+
+        function updateBatteryInfo() {
+            const batteryNames = {
+                'lipo': 'LiPo 48V (5Ah)',
+                'lifepo4': 'LiFePO4 48V (10Ah)',
+                'lead-acid': 'Lead-Acid 48V (20Ah)'
+            };
+            const maxCurrents = {
+                'lipo': '100A',
+                'lifepo4': '150A',
+                'lead-acid': '80A'
+            };
+            document.getElementById('batteryInfo').textContent = batteryNames[state.batteryType] || 'LiPo';
+            document.getElementById('batteryMaxI').textContent = maxCurrents[state.batteryType] || '100A';
+        }
+
+        function updateBatteryTelemetry(socPercent, regenW) {
+            const socEl = document.getElementById('batterySoc');
+            const regenEl = document.getElementById('regenDisplay');
+            if (socEl) socEl.textContent = (socPercent != null) ? socPercent.toFixed(1) + '%' : '85%';
+            if (regenEl) {
+                const w = (regenW != null) ? regenW : 0;
+                regenEl.textContent = w.toFixed(1) + ' W';
+                regenEl.style.color = w > 0 ? '#10b981' : '#f59e0b';
+            }
+        }
+
+        // ==================== MODE SWITCHING ====================
+        document.getElementById('btnSimulation').addEventListener('click', () => {
+            state.mode = 'simulation';
+            updateModeUI();
+        });
+
+        document.getElementById('btnReal').addEventListener('click', () => {
+            state.mode = 'real';
+            updateModeUI();
+        });
+
+        function updateModeUI() {
+            document.getElementById('simulationMode').classList.remove('active');
+            document.getElementById('realMode').classList.remove('active');
+
+            if (state.mode === 'simulation') {
+                document.getElementById('simulationMode').classList.add('active');
+                document.getElementById('btnSimulation').classList.add('active');
+                document.getElementById('btnReal').classList.remove('active');
+                document.getElementById('modeIndicator').classList.remove('real');
+                document.getElementById('modeIndicator').classList.add('sim');
+                document.getElementById('modeText').textContent = 'Simulação Ativa';
+            } else {
+                document.getElementById('realMode').classList.add('active');
+                document.getElementById('btnReal').classList.add('active');
+                document.getElementById('btnSimulation').classList.remove('active');
+                document.getElementById('modeIndicator').classList.remove('sim');
+                document.getElementById('modeIndicator').classList.add('real');
+                document.getElementById('modeText').textContent = 'Hardware Real';
+            }
+        }
+
+        // ==================== SIMULATION MODE ====================
+        document.getElementById('throttleSim').addEventListener('input', (e) => {
+             state.throttle = parseFloat(e.target.value);
+             document.getElementById('throttleDisplay').textContent = Math.round(state.throttle);
+             document.getElementById('mod_foc_throttle').textContent = Math.round(state.throttle) + '%';
+         });
+
+         document.getElementById('brakeSim').addEventListener('input', (e) => {
+             state.brakeTorque = parseFloat(e.target.value);
+             document.getElementById('brakeDisplay').textContent = state.brakeTorque.toFixed(1);
+         });
+
+         // ==================== FREIO MOTOR / REGENERAÇÃO (toggle) ====================
+         const brakeBtn = document.getElementById('btnMotorBrake');
+         function updateBrakeUI() {
+             if (state.motorBrake) {
+                 brakeBtn.textContent = '⚡ ATIVO';
+                 brakeBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                 brakeBtn.title = 'Freio motor ligado — frenagem + regeneração ativa';
+             } else {
+                 brakeBtn.textContent = '⛔ OFF';
+                 brakeBtn.style.background = 'linear-gradient(135deg, #ef4444, #b91c1c)';
+                 brakeBtn.title = 'Freio motor desligado — roda livre (coast)';
+             }
+         }
+         brakeBtn.addEventListener('click', () => {
+             state.motorBrake = !state.motorBrake;
+             updateBrakeUI();
+             updateChartFromHistory();
+         });
+         updateBrakeUI();
+
+        document.getElementById('btnStartSim').addEventListener('click', () => {
+            state.simRunning = true;
+            state.histStart = null;
+            state.history = [];
+            document.getElementById('simStatus').textContent = 'Simulando...';
+            updateChartFromHistory();
+        });
+
+        document.getElementById('btnAutoLearnSim').addEventListener('click', () => {
+            state.simRunning = true;
+            state.histStart = null;
+            state.history = [];
+            document.getElementById('simStatus').textContent = 'Auto-Learning...';
+            document.getElementById('mod_learn_status').textContent = 'Ativo (Relay)';
+        });
+
+        document.getElementById('btnStopSim').addEventListener('click', () => {
+            state.simRunning = false;
+            state.throttle = 0;
+            document.getElementById('throttleSim').value = 0;
+            document.getElementById('throttleDisplay').textContent = '0';
+            document.getElementById('simStatus').textContent = 'Parado';
+            document.getElementById('mod_learn_status').textContent = 'Inativo';
+        });
+
+        // ==================== REAL MODE ====================
+        document.getElementById('throttleReal').addEventListener('input', (e) => {
+            state.throttle = parseFloat(e.target.value);
+            document.getElementById('throttleDisplayReal').textContent = Math.round(state.throttle);
+        });
+
+        document.getElementById('btnStartReal').addEventListener('click', () => {
+            state.realConnected = true;
+            document.getElementById('realStatus').textContent = 'Conectado ✅';
+            document.getElementById('firmwareVersion').textContent = 'v1.0.0 (FOC)';
+            document.getElementById('comPort').textContent = 'USB-Serial (COM3)';
+        });
+
+        document.getElementById('btnStopReal').addEventListener('click', () => {
+            state.realConnected = false;
+            state.throttle = 0;
+            document.getElementById('throttleReal').value = 0;
+            document.getElementById('throttleDisplayReal').textContent = '0';
+            document.getElementById('realStatus').textContent = 'Desconectado';
+        });
+
+        // ==================== SIMULATION API FETCH ====================
+         async function fetchSimulationData() {
+             if (state.mode !== 'simulation' || !state.simRunning) return;
+
+             try {
+                 const response = await fetch(CONFIG.API_SIMULATION, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({
+                         throttle_percent: state.throttle,
+                         duration_s: 0.5,
+                         kp: state.kp,
+                         ki: state.ki,
+                         kd: state.kd,
+                         rpm_target: state.rpmTarget || 3000,
+                         autolearn_duration_s: state.autoLearnDuration || 2.0,
+                         load_torque: state.motorBrake ? (state.brakeTorque || 0) : 0,  // Torque from braking
+                         motor_brake: state.motorBrake,
+                         autolearn_enabled: false,
+                         motor_type: state.motorType,
+                         battery_type: state.batteryType
+                     })
+                 });
+
+                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                 const data = await response.json();
+
+                 const rpm = data.summary?.final_rpm || 0;
+                 const current = data.summary?.peak_current || 0;
+                 const meanCurrent = data.summary?.mean_current || current;
+                 const errorPct = data.summary?.error_percent;
+                 const rpmTarget = data.summary?.target_rpm || (1000 + (state.throttle / 100) * 6000);
+                 const tempDriver = 25 + (rpm / 500) + 5;
+                 const errInt = (data.states?.length > 0) ? (data.states[data.states.length - 1].error_integral || 0) : 0;
+                 const fault = (data.states?.length > 0) ? (data.states[data.states.length - 1].fault_code || 0) : 0;
+                 const torque = current * 0.28;
+                 const temp = 25 + (rpm / 500);
+                 const voltage = 380 - (current * 0.1);
+                 const power = (voltage * current / 1000);
+
+                 // Update telemetry
+                 document.getElementById('simRpm').textContent = Math.round(rpm);
+                 document.getElementById('simRpmTarget').textContent = Math.round(rpmTarget);
+                 document.getElementById('simErrorPct').textContent = (errorPct !== undefined ? errorPct.toFixed(2) : '--');
+                 document.getElementById('simCurrent').textContent = current.toFixed(1);
+                 document.getElementById('simMeanCurrent').textContent = meanCurrent.toFixed(1);
+                 document.getElementById('simTorque').textContent = torque.toFixed(2);
+                 document.getElementById('simTemp').textContent = Math.round(temp);
+                 document.getElementById('simTempDriver').textContent = Math.round(tempDriver);
+                 document.getElementById('simVoltage').textContent = Math.round(voltage);
+                 document.getElementById('simPower').textContent = power.toFixed(2);
+                 document.getElementById('simErrInt').textContent = errInt.toFixed(2);
+                 document.getElementById('simFault').textContent = '0x' + fault.toString(16).padStart(2, '0');
+                 document.getElementById('simFault').nextElementSibling.textContent = fault === 0 ? 'OK' : 'FALHA';
+
+                 // Battery SOC + regenerative telemetry
+                 const soc = data.summary?.soc ?? data.battery?.soc;
+                 const regenW = data.battery?.regen_power_max ?? 0;
+                 updateBatteryTelemetry(soc != null ? soc * 100 : null, regenW);
+
+                 // Update module displays
+                 document.getElementById('mod_motor_rpm').textContent = Math.round(rpm) + ' rpm';
+                 document.getElementById('mod_motor_torque').textContent = torque.toFixed(2) + ' N·m';
+                 document.getElementById('mod_foc_u').textContent = Math.round(voltage) + ' V';
+                 document.getElementById('mod_batt_i').textContent = current.toFixed(1) + ' A';
+                 document.getElementById('mod_batt_v').textContent = voltage.toFixed(1) + ' V';
+                 document.getElementById('mod_therm_p').textContent = (voltage * current).toFixed(1) + ' W';
+                 document.getElementById('mod_therm_t').textContent = Math.round(temp) + ' °C';
+                 
+                 // Brake status
+                 const brakeStatus = (state.motorBrake && state.brakeTorque > 0) ? `ON (${state.brakeTorque.toFixed(1)} N·m)` : (state.motorBrake ? 'ATIVO' : 'OFF (roda livre)');
+                 document.getElementById('mod_protect_brake').textContent = brakeStatus;
+
+                 // Update bars
+                 document.getElementById('barSimRpm').style.width = (rpm / 10000 * 100) + '%';
+                 document.getElementById('barSimRpmTarget').style.width = (rpmTarget / 10000 * 100) + '%';
+                 document.getElementById('barSimError').style.width = Math.min(100, (errorPct || 0)) + '%';
+                 document.getElementById('barSimCurrent').style.width = (current / 150 * 100) + '%';
+                 document.getElementById('barSimMeanCurrent').style.width = (meanCurrent / 150 * 100) + '%';
+                 document.getElementById('barSimTorque').style.width = (torque / 75 * 100) + '%';
+                 document.getElementById('barSimTemp').style.width = ((temp - 25) / 75 * 100) + '%';
+                 document.getElementById('barSimTempDriver').style.width = ((tempDriver - 25) / 75 * 100) + '%';
+                 document.getElementById('barSimVoltage').style.width = ((voltage - 300) / 150 * 100) + '%';
+                 document.getElementById('barSimPower').style.width = (power / 60 * 100) + '%';
+                 document.getElementById('barSimErrInt').style.width = Math.min(100, Math.abs(errInt) / 20 * 100) + '%';
+                 document.getElementById('barSimFault').style.width = fault !== 0 ? '100%' : '0%';
+
+                  // ===== ACUMULAR NO HISTÓRICO (60s rolling) =====
+                  // A cada fetch (0.5s), adiciona 1 ponto (rpm + corrente finais da simulação)
+                  if (state.histStart === null) state.histStart = Date.now();
+                  const elapsed = (Date.now() - state.histStart) / 1000;
+                  pushHistoryPoint(rpm, current, elapsed);
+                  updateChartFromHistory();
+                  console.log(`📈 Histórico: ${state.history.length}pts, Corrente agora=${current.toFixed(1)}A, Throttle=${state.throttle}%`);
+
+                  document.getElementById('simRate').textContent = state.history.length + ' pts / 60s';
+
+             } catch (error) {
+                 console.error('API Error:', error, '→ usando simulação local');
+                 document.getElementById('simStatus').textContent = '⚠️ Servidor offline — simulação local';
+                 
+                 // FALLBACK: simular localmente no navegador para o gráfico nunca congelar
+                 const states = simulateLocal(state.throttle, state.brakeTorque || 0, state.motorBrake);
+                 const last = states[states.length - 1];
+                 
+                 // Acumular no histórico (60s rolling)
+                 if (state.histStart === null) state.histStart = Date.now();
+                 const elapsed = (Date.now() - state.histStart) / 1000;
+                 pushHistoryPoint(last.rpm_actual, last.current_rms, elapsed);
+                 updateChartFromHistory();
+                 
+                 // Atualizar telemetria com o último ponto
+                 const rpmTargetLocal = 1000 + (state.throttle / 100) * 6000;
+                 const errPctLocal = Math.abs(last.rpm_actual - rpmTargetLocal) / rpmTargetLocal * 100;
+                 document.getElementById('simRpm').textContent = Math.round(last.rpm_actual);
+                 document.getElementById('simRpmTarget').textContent = Math.round(rpmTargetLocal);
+                 document.getElementById('simErrorPct').textContent = errPctLocal.toFixed(2);
+                 document.getElementById('simCurrent').textContent = last.current_rms.toFixed(1);
+                 document.getElementById('simMeanCurrent').textContent = last.current_rms.toFixed(1);
+                 document.getElementById('simTorque').textContent = (last.current_rms * 0.28).toFixed(2);
+                 document.getElementById('simTemp').textContent = Math.round(25 + last.rpm_actual / 500);
+                 document.getElementById('simTempDriver').textContent = Math.round(30 + last.rpm_actual / 500);
+                 document.getElementById('simVoltage').textContent = Math.round(380 - last.current_rms * 0.1);
+                 document.getElementById('simPower').textContent = ((380 - last.current_rms * 0.1) * last.current_rms / 1000).toFixed(2);
+                 document.getElementById('simErrInt').textContent = '0.00';
+                 document.getElementById('simFault').textContent = '0x00';
+                 document.getElementById('simFault').nextElementSibling.textContent = 'OK';
+                 document.getElementById('mod_batt_i').textContent = last.current_rms.toFixed(1) + ' A';
+                 updateBatteryTelemetry(last.soc != null ? last.soc * 100 : null, last.regen_power || 0);
+                 document.getElementById('barSimRpm').style.width = (last.rpm_actual / 10000 * 100) + '%';
+                 document.getElementById('barSimRpmTarget').style.width = (rpmTargetLocal / 10000 * 100) + '%';
+                 document.getElementById('barSimError').style.width = Math.min(100, errPctLocal) + '%';
+                 document.getElementById('barSimCurrent').style.width = (last.current_rms / 150 * 100) + '%';
+                 document.getElementById('barSimMeanCurrent').style.width = (last.current_rms / 150 * 100) + '%';
+                 document.getElementById('barSimTemp').style.width = ((last.rpm_actual / 500) / 75 * 100) + '%';
+                 document.getElementById('barSimTempDriver').style.width = ((5 + last.rpm_actual / 500) / 75 * 100) + '%';
+                 document.getElementById('barSimErrInt').style.width = '0%';
+                 document.getElementById('barSimFault').style.width = '0%';
+                 document.getElementById('simRate').textContent = state.history.length + ' pts / 60s (local)';
+             }
+         }
+         
+         // ==================== LOCAL SIMULATION FALLBACK ====================
+         // Simula o motor no próprio navegador quando o servidor está offline.
+         // Garante que o gráfico de corrente SEMPRE reaja ao throttle.
+         function simulateLocal(throttle, brakeTorque, motorBrake) {
+             const n = 60;
+             const states = [];
+             const targetRpm = 1000 + (throttle / 100) * 6000;  // 1000-7000 RPM
+             const brakeEff = (motorBrake !== false) ? brakeTorque * 30 : 0;  // RPM penalizado pelo freio (0 se freio OFF)
+             // SOC local: decai com consumo, sobe (regen) quando freio ativo e acelerador solto
+             let localSoc = 0.85;
+             
+             for (let i = 0; i < n; i++) {
+                 const t = (i / n) * 0.5;
+                 // Subida exponencial rumo ao alvo (realista, com freio reduzindo o alvo)
+                 const setpoint = Math.max(0, targetRpm - brakeEff);
+                 const rpm = setpoint * (1 - Math.exp(-t * 3));
+                 
+                 // Corrente: alta na partida, cai em regime; proporcional ao throttle
+                 const baseCurrent = 4 + (throttle / 100) * 46;   // 4A (0%) até 50A (100%)
+                 const speedRatio = setpoint > 0 ? Math.min(1, rpm / setpoint) : 0;
+                 const steady = baseCurrent * (0.6 + 0.4 * speedRatio);
+                 const current = Math.max(0.1, steady * (1 - Math.exp(-t * 4)) + brakeTorque * 3);
+                 
+                 // Regeneração local: freio motor ativo + desacelerando (throttle baixo)
+                 let regenW = 0;
+                 if (motorBrake !== false && throttle < 20 && rpm > 200 && i > 2) {
+                     const regenA = Math.min(15, brakeTorque * 4 + 2);  // A recuperados
+                     regenW = regenA * 48;                              // P = I * V
+                     localSoc = Math.min(1.0, localSoc + regenA * 0.05 / 3600);
+                 } else {
+                     // Consumo leve durante o uso normal
+                     localSoc = Math.max(0.0, localSoc - current * 0.002 / 3600);
+                 }
+                 
+                 states.push({
+                     time_s: t,
+                     rpm_actual: rpm,
+                     current_rms: current,
+                     soc: localSoc,
+                     regen_power: regenW
+                 });
+             }
+             return states;
+         }
+         
+         // ==================== CHART UPDATER (60s rolling history) ====================
+         // Adiciona um ponto ao buffer rotativo e desenha os últimos 120 pontos (60s @ 2Hz).
+         function pushHistoryPoint(rpm, current, elapsedSec) {
+             state.history.push({
+                 time_s: Math.round(elapsedSec * 10) / 10,
+                 rpm: Math.round(rpm),
+                 current: Math.round(current * 100) / 100
+             });
+             // Mantém apenas os últimos 120 pontos (~60s)
+             if (state.history.length > 120) {
+                 state.history.shift();
+             }
+         }
+
+         function updateChartFromHistory() {
+             const h = state.history;
+             if (!h || h.length === 0) return;
+             
+             const labels = [];
+             const rpms = [];
+             const currents = [];
+             for (let i = 0; i < h.length; i++) {
+                 labels.push(h[i].time_s.toFixed(1) + 's');
+                 rpms.push(h[i].rpm);
+                 currents.push(h[i].current);
+             }
+             
+             chartSim.data.labels = labels;
+             chartSim.data.datasets[0].data = rpms;
+             chartSim.data.datasets[1].data = currents;
+             chartSim.update('none');
+         }
+
+        // ==================== CHART SETUP ====================
+        const ctxSim = document.getElementById('chartSim').getContext('2d');
+        const chartSim = new Chart(ctxSim, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'RPM',
+                        data: [],
+                        borderColor: '#06b6d4',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                        pointRadius: 0,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Corrente (A)',
+                        data: [],
+                        borderColor: '#ec4899',
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true, labels: { color: '#cbd5e1' } } },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        const ctxReal = document.getElementById('chartReal').getContext('2d');
+        const chartReal = new Chart(ctxReal, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'RPM', data: [], borderColor: '#8b5cf6', tension: 0.4, yAxisID: 'y', pointRadius: 0, borderWidth: 2 },
+                    { label: 'Corrente (A)', data: [], borderColor: '#ec4899', tension: 0.4, yAxisID: 'y1', pointRadius: 0, borderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true, labels: { color: '#cbd5e1' } } },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // ==================== TUNING PARAMETERS CONTROLS ====================
+         document.getElementById('sliderKpLive').addEventListener('input', (e) => {
+             state.kp = parseFloat(e.target.value);
+             document.getElementById('displayKpLive').textContent = state.kp.toFixed(2);
+         });
+         
+         document.getElementById('sliderKiLive').addEventListener('input', (e) => {
+             state.ki = parseFloat(e.target.value);
+             document.getElementById('displayKiLive').textContent = state.ki.toFixed(3);
+         });
+         
+         document.getElementById('sliderKdLive').addEventListener('input', (e) => {
+             state.kd = parseFloat(e.target.value);
+             document.getElementById('displayKdLive').textContent = state.kd.toFixed(3);
+         });
+         
+         document.getElementById('sliderRpmTarget').addEventListener('input', (e) => {
+             state.rpmTarget = parseFloat(e.target.value);
+             document.getElementById('displayRpmTarget').textContent = Math.round(state.rpmTarget);
+         });
+         
+         document.getElementById('sliderAutoLearnDuration').addEventListener('input', (e) => {
+             state.autoLearnDuration = parseFloat(e.target.value);
+             document.getElementById('displayAutoLearnDuration').textContent = state.autoLearnDuration.toFixed(1);
+         });
+         
+         document.getElementById('btnResetParams').addEventListener('click', () => {
+             state.kp = 0.3;
+             state.ki = 0.03;
+             state.kd = 0.01;
+             state.rpmTarget = 3000;
+             state.autoLearnDuration = 2.0;
+             
+             document.getElementById('sliderKpLive').value = 0.30;
+             document.getElementById('sliderKiLive').value = 0.03;
+             document.getElementById('sliderKdLive').value = 0.01;
+             document.getElementById('sliderRpmTarget').value = 3000;
+             document.getElementById('sliderAutoLearnDuration').value = 2.0;
+             
+             document.getElementById('displayKpLive').textContent = '0.30';
+             document.getElementById('displayKiLive').textContent = '0.030';
+             document.getElementById('displayKdLive').textContent = '0.010';
+             document.getElementById('displayRpmTarget').textContent = '3000';
+             document.getElementById('displayAutoLearnDuration').textContent = '2.0';
+         });
+         
+         document.getElementById('btnApplyParams').addEventListener('click', () => {
+             updateSafetyWarnings();
+             saveProfile();
+             alert('✅ Parâmetros aplicados e salvos!\n\nKp: ' + state.kp.toFixed(3) + 
+                   '\nKi: ' + state.ki.toFixed(4) + 
+                   '\nKd: ' + state.kd.toFixed(4) + 
+                   '\nRPM Target: ' + Math.round(state.rpmTarget) + 
+                   '\nAutoLearn Duration: ' + state.autoLearnDuration.toFixed(1) + 's' +
+                   '\n\n💾 Perfil salvo — não precisa repetir o Auto-Learn.');
+         });
+
+         document.getElementById('btnSaveProfile').addEventListener('click', () => {
+             saveProfile();
+             updateSafetyWarnings();
+             alert('💾 Perfil salvo!\nO Auto-Learn não precisa rodar de novo — os ganhos serão carregados ao abrir a página.');
+         });
+         
+         // ==================== AUTO-LEARN REAL (via backend) ====================
+         // Roda UMA simulação com autolearn_enabled=true no servidor e usa o
+         // autolearn_status retornado para atualizar a barra de progresso.
+         // Ao final, aplica os ganhos reais e salva o perfil (localStorage).
+         let autoLearnInterval = null;
+
+         function startAutoLearn() {
+             state.simRunning = true;
+             state.histStart = null;
+             state.history = [];
+             state.autolearnActive = true;
+             document.getElementById('simStatus').textContent = 'Auto-Learning...';
+             document.getElementById('mod_learn_status').textContent = 'Iniciando...';
+             document.getElementById('autoLearnPhase').textContent = 'Fase 1: Soft Start';
+             document.getElementById('autoLearnPercent').textContent = '0%';
+             document.getElementById('autoLearnProgressBar').style.width = '0%';
+             document.getElementById('mod_learn_kp').textContent = '--';
+             document.getElementById('mod_learn_ki').textContent = '--';
+             document.getElementById('mod_learn_kd').textContent = '--';
+
+             // Poll: o servidor roda a simulação com autolearn e retorna progresso real
+             autoLearnInterval = setInterval(async () => {
+                 try {
+                     const resp = await fetch(CONFIG.API_SIMULATION, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                             throttle_percent: state.throttle || 50,
+                             duration_s: Math.max(0.5, state.autoLearnDuration),
+                             kp: state.kp,
+                             ki: state.ki,
+                             kd: state.kd,
+                             rpm_target: state.rpmTarget || 3000,
+                             load_torque: state.motorBrake ? (state.brakeTorque || 0) : 0,
+                             motor_brake: state.motorBrake,
+                             autolearn_enabled: true,
+                             autolearn_duration_s: state.autoLearnDuration || 2.0,
+                             motor_type: state.motorType,
+                             battery_type: state.batteryType
+                         })
+                     });
+                     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                     const data = await resp.json();
+                     const al = data.autolearn_status;
+                     
+                     if (!al) throw new Error('sem autolearn_status');
+
+                     const pct = Math.min(100, Math.round(al.progress_percent || 0));
+                     document.getElementById('autoLearnProgressBar').style.width = pct + '%';
+                     document.getElementById('autoLearnPercent').textContent = pct + '%';
+                     
+                     const phaseNames = { 'idle': 'Aguardando', 'phase1': 'Fase 1: Soft Start', 'phase2': 'Fase 2: Oscilando', 'phase3': 'Fase 3: Refinement', 'converged': 'Concluído!', 'timeout': 'Timeout' };
+                     document.getElementById('autoLearnPhase').textContent = phaseNames[al.state] || al.state;
+                     document.getElementById('mod_learn_status').textContent =
+                         `Fase ${al.phase}/3 · ${al.zero_crossings} cruzamentos`;
+                     
+                     // Atualiza telemetria com o ponto final
+                     const rpm = data.summary?.final_rpm || 0;
+                     const current = data.summary?.peak_current || 0;
+                     document.getElementById('simRpm').textContent = Math.round(rpm);
+                     document.getElementById('simCurrent').textContent = current.toFixed(1);
+                     document.getElementById('simErrorPct').textContent = (data.summary?.error_percent ?? 0).toFixed(2);
+
+                     if (al.state === 'converged' || al.state === 'timeout' || pct >= 100) {
+                         clearInterval(autoLearnInterval);
+                         state.autolearnActive = false;
+                         state.simRunning = false;
+
+                         const kp = al.kp || state.kp;
+                         const ki = al.ki || state.ki;
+                         const kd = al.kd || state.kd;
+                         applyTunedGains(kp, ki, kd);
+
+                         document.getElementById('mod_learn_kp').textContent = kp.toFixed(3);
+                         document.getElementById('mod_learn_ki').textContent = ki.toFixed(4);
+                         document.getElementById('mod_learn_kd').textContent = kd.toFixed(4);
+                         document.getElementById('mod_learn_status').textContent =
+                             al.state === 'converged' ? '✅ Concluído — salvo!' : '⚠️ Timeout — usando últimos ganhos';
+                         document.getElementById('simStatus').textContent =
+                             al.state === 'converged' ? '✅ Auto-Learn concluído' : '⚠️ Auto-Learn: timeout';
+
+                         // Persistir perfil automaticamente (não precisa treinar de novo)
+                         saveProfile();
+                         updateSafetyWarnings();
+                         console.log('🎯 Auto-learn real:', { kp, ki, kd });
+                     }
+                 } catch (err) {
+                     console.error('AutoLearn API error:', err);
+                     clearInterval(autoLearnInterval);
+                     state.autolearnActive = false;
+                     state.simRunning = false;
+                     document.getElementById('mod_learn_status').textContent = '❌ Falha (offline?)';
+                     document.getElementById('simStatus').textContent = '❌ Auto-Learn falhou';
+                 }
+             }, 500);
+         }
+         
+         document.getElementById('btnAutoLearnSim').addEventListener('click', () => {
+             if (autoLearnInterval) clearInterval(autoLearnInterval);
+             startAutoLearn();
+         });
+         
+document.getElementById('btnStopSim').addEventListener('click', () => {
+            if (autoLearnInterval) clearInterval(autoLearnInterval);
+            state.autolearnActive = false;
+            document.getElementById('autoLearnProgressBar').style.width = '0%';
+            document.getElementById('autoLearnPercent').textContent = '0%';
+            document.getElementById('autoLearnPhase').textContent = '--';
+            document.getElementById('mod_learn_status').textContent = 'Inativo';
+            document.getElementById('mod_learn_kp').textContent = '--';
+            document.getElementById('mod_learn_ki').textContent = '--';
+            document.getElementById('mod_learn_kd').textContent = '--';
+        });
+
+        // ==================== PERFIL / PERSISTÊNCIA (localStorage) ====================
+        // Auto-learn roda UMA vez; o resultado é salvo e recarregado nas próximas aberturas.
+        const PROFILE_KEY = 'motorcontrol_profile_v1';
+
+        function applyTunedGains(kp, ki, kd) {
+            state.kp = parseFloat(kp);
+            state.ki = parseFloat(ki);
+            state.kd = parseFloat(kd);
+            document.getElementById('sliderKpLive').value = state.kp;
+            document.getElementById('sliderKiLive').value = state.ki;
+            document.getElementById('sliderKdLive').value = state.kd;
+            document.getElementById('displayKpLive').textContent = state.kp.toFixed(2);
+            document.getElementById('displayKiLive').textContent = state.ki.toFixed(3);
+            document.getElementById('displayKdLive').textContent = state.kd.toFixed(3);
+            document.getElementById('mod_foc_kp').textContent = state.kp.toFixed(2);
+        }
+
+        function saveProfile() {
+            const profile = {
+                kp: state.kp, ki: state.ki, kd: state.kd,
+                rpm_target: Math.round(state.rpmTarget),
+                auto_learn_duration_s: state.autoLearnDuration,
+                motor_type: state.motorType, battery_type: state.batteryType,
+                saved_at: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+                document.getElementById('profileStatus').textContent = '💾 Perfil salvo em ' + new Date().toLocaleTimeString();
+                console.log('💾 Perfil salvo:', profile);
+            } catch (e) {
+                console.error('Erro ao salvar perfil:', e);
+            }
+            try {
+                fetch(CONFIG.API_BASE + '/api/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profile)
+                }).then(r => r.json()).then(data => {
+                    console.log('☁️ Perfil sincronizado no servidor:', data);
+                }).catch(err => console.warn('Servidor offline — perfil só no localStorage:', err));
+            } catch (e) {
+                console.warn('Falha ao sincronizar perfil no servidor:', e);
+            }
+        }
+
+        function _applyProfile(p) {
+            if (p.kp != null) applyTunedGains(p.kp, p.ki, p.kd);
+            const rpm = p.rpmTarget != null ? p.rpmTarget : p.rpm_target;
+            if (rpm != null) {
+                state.rpmTarget = parseFloat(rpm);
+                document.getElementById('sliderRpmTarget').value = state.rpmTarget;
+                document.getElementById('displayRpmTarget').textContent = Math.round(state.rpmTarget);
+            }
+            const dur = p.autoLearnDuration != null ? p.autoLearnDuration : p.auto_learn_duration_s;
+            if (dur != null) {
+                state.autoLearnDuration = parseFloat(dur);
+                document.getElementById('sliderAutoLearnDuration').value = state.autoLearnDuration;
+                document.getElementById('displayAutoLearnDuration').textContent = state.autoLearnDuration.toFixed(1);
+            }
+            const mt = p.motorType != null ? p.motorType : p.motor_type;
+            if (mt != null && document.getElementById('motorSelect').querySelector('option[value="' + mt + '"]')) {
+                state.motorType = mt;
+                document.getElementById('motorSelect').value = mt;
+                updateMotorInfo();
+            }
+            const bt = p.batteryType != null ? p.batteryType : p.battery_type;
+            if (bt != null && document.getElementById('batterySelect').querySelector('option[value="' + bt + '"]')) {
+                state.batteryType = bt;
+                document.getElementById('batterySelect').value = bt;
+                updateBatteryInfo();
+            }
+        }
+
+        function loadProfile() {
+            // Fonte da verdade: servidor (como EEPROM). Fallback: localStorage.
+            try {
+                fetch(CONFIG.API_BASE + '/api/profile')
+                    .then(r => r.json())
+                    .then(data => {
+                        const p = data.profile || {};
+                        if (p && (p.kp != null)) {
+                            _applyProfile(p);
+                            document.getElementById('profileStatus').textContent = '✅ Perfil carregado do servidor (EEPROM)';
+                            console.log('📂 Perfil do servidor:', p);
+                            updateSafetyWarnings();
+                            return;
+                        }
+                        // Sem perfil no servidor: usar localStorage
+                        const raw = localStorage.getItem(PROFILE_KEY);
+                        if (raw) {
+                            _applyProfile(JSON.parse(raw));
+                            document.getElementById('profileStatus').textContent = '✅ Perfil carregado (localStorage)';
+                        } else {
+                            document.getElementById('profileStatus').textContent = 'ℹ️ Nenhum perfil salvo — usando padrão';
+                        }
+                    })
+                    .catch(() => {
+                        // Servidor offline: localStorage apenas
+                        const raw = localStorage.getItem(PROFILE_KEY);
+                        if (raw) {
+                            _applyProfile(JSON.parse(raw));
+                            document.getElementById('profileStatus').textContent = '✅ Perfil carregado (localStorage, servidor offline)';
+                        } else {
+                            document.getElementById('profileStatus').textContent = 'ℹ️ Nenhum perfil salvo — usando padrão';
+                        }
+                    });
+            } catch (e) {
+                console.error('Erro ao carregar perfil:', e);
+                document.getElementById('profileStatus').textContent = '⚠️ Erro ao carregar perfil';
+            }
+        }
+
+        // ==================== AVISOS DE SEGURANÇA (faixas dos parâmetros) ====================
+        function updateSafetyWarnings() {
+            const warnings = [];
+            if (state.kp > 2.0) warnings.push('⚠️ Kp muito alto → risco de oscilação / overshoot');
+            if (state.ki > 0.3) warnings.push('⚠️ Ki muito alto → risco de integral windup / oscilação');
+            if (state.kd > 0.2) warnings.push('⚠️ Kd muito alto → amplifica ruído / vibração');
+            if (state.rpmTarget > 6000) warnings.push('⚠️ RPM alvo alto → corrente alta, motor esquenta');
+            const el = document.getElementById('safetyWarnings');
+            if (el) el.textContent = warnings.length ? warnings.join(' · ') : '✅ Parâmetros dentro da faixa segura';
+        }
+
+        // ==================== MAIN LOOP ====================
+         // Aplicar perfil salvo ao abrir a página (auto-learn roda uma vez, depois usa o salvo)
+         loadProfile();
+         setInterval(fetchSimulationData, CONFIG.UPDATE_INTERVAL);
+         setInterval(updateSafetyWarnings, 1000);
+     </script>
+     
+     <!-- ==================== LEGENDA / DOCUMENTAÇÃO ====================  -->
+     <div style="background: rgba(51, 65, 85, 0.5); border-top: 2px solid rgba(99, 102, 241, 0.3); padding: 30px 20px; margin-top: 40px;">
+         <div style="max-width: 1600px; margin: 0 auto;">
+             <h2 style="font-size: 26px; font-weight: 700; color: #f1f5f9; margin-bottom: 25px; border-bottom: 2px solid rgba(99, 102, 241, 0.3); padding-bottom: 15px;">📚 Documentação das Variáveis do Sistema</h2>
+             
+             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px;">
+                 <!-- Motor Section -->
+                 <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 10px; padding: 20px;">
+                     <h3 style="color: #06b6d4; font-size: 18px; font-weight: 700; margin-bottom: 15px;">🔷 Motor BLDC</h3>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                         <li><strong>RPM:</strong> Rotações por minuto (0-12000). Velocidade atual do eixo do motor.</li>
+                         <li><strong>Torque (N·m):</strong> Força rotacional gerada. Proporcional à corrente × Kt.</li>
+                         <li><strong>Corrente (A):</strong> Fluxo elétrico. ↑ corrente = ↑ torque. Limite: 50A (proteção).</li>
+                         <li><strong>Temperatura (°C):</strong> Calor no motor. Limite seguro: 80°C. Acima = falha térmica.</li>
+                         <li><strong>Kt:</strong> Constante de torque (0.28 N·m/A). Define torque gerado por Amp.</li>
+                         <li><strong>J (Inércia):</strong> Resistência à aceleração. Varia: 0.0001 (small) a 0.010 (large).</li>
+                     </ul>
+                 </div>
+                 
+                 <!-- Battery Section -->
+                 <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; padding: 20px;">
+                     <h3 style="color: #a78bfa; font-size: 18px; font-weight: 700; margin-bottom: 15px;">🔋 Bateria</h3>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                         <li><strong>Tensão (V):</strong> Voltagem fornecida. Nominal 48V. Cai com descarga e corrente alta.</li>
+                         <li><strong>Capacidade (Ah):</strong> Energia armazenada. LiPo: 5Ah, LiFePO4: 10Ah, Pb: 20Ah.</li>
+                         <li><strong>SOC (%):</strong> State of Charge. 100% = carga máxima. Bateria morre em 0%.</li>
+                         <li><strong>Corrente Max (A):</strong> Máxima descarga contínua segura. LiPo: 100A, LiFePO4: 150A.</li>
+                         <li><strong>ESR (Ω):</strong> Resistência interna. Cria queda de tensão: V_real = V_nominal - (I × ESR).</li>
+                         <li><strong>Química:</strong> LiPo (rápida), LiFePO4 (segura), Lead-Acid (pesada).</li>
+                     </ul>
+                 </div>
+                 
+                 <!-- Controller Section -->
+                 <div style="background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 10px; padding: 20px;">
+                     <h3 style="color: #ec4899; font-size: 18px; font-weight: 700; margin-bottom: 15px;">⚙️ Controladora PID (FOC)</h3>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                         <li><strong>Kp (Proporcional):</strong> Ganho de resposta rápida. ↑ = motor responde rápido. Risco: overshoot.</li>
+                         <li><strong>Ki (Integral):</strong> Elimina erro em regime permanente. ↑ = mais agresivo. Risco: oscilação.</li>
+                         <li><strong>Kd (Derivativa):</strong> Amortecimento. ↑ = menos overshoot. Risco: instabilidade em nível baixo.</li>
+                         <li><strong>Error Integral:</strong> Acumulação do erro ao longo do tempo. Resetado quando Kp/Ki/Kd mudam.</li>
+                         <li><strong>Setpoint (RPM):</strong> Alvo de velocidade. Controladora tenta manter motor neste RPM.</li>
+                         <li><strong>FOC:</strong> Field-Oriented Control. Transforma controle 3-fases em 2 eixos (α-β) para simplificar.</li>
+                     </ul>
+                     <h4 style="color: #f472b6; margin-top: 15px; font-size: 15px;">⚠️ Efeito de Aumentar / Diminuir os Ganhos</h4>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 1.9; font-size: 14px;">
+                         <li><strong>Kp ↑ muito:</strong> resposta rápida, mas <span style="color: #ef4444;">overshoot + oscilação → arrancadas bruscas, picos de corrente (pode disparar proteção 50A), trepidação no carro.</span></li>
+                         <li><strong>Kp ↓ muito:</strong> <span style="color: #f59e0b;">motor "preguiçoso", demora a atingir RPM alvo, erro de regime permanente.</span></li>
+                         <li><strong>Ki ↑ muito:</strong> elimina erro de regime, mas <span style="color: #ef4444;">integral windup → overshoot grande, oscilação sustentada, motor esquenta.</span></li>
+                         <li><strong>Ki ↓ muito:</strong> <span style="color: #f59e0b;">erro de regime persiste — carro não segura velocidade em subida.</span></li>
+                         <li><strong>Kd ↑ muito:</strong> amortece overshoot, mas <span style="color: #ef4444;">amplifica ruído → vibração de alta frequência, zumbido, aquecimento dos MOSFETs.</span></li>
+                         <li><strong>Kd ↓ muito:</strong> <span style="color: #f59e0b;">mais overshoot e oscilação, menos estabilidade.</span></li>
+                         <li><strong>Regra de ouro:</strong> após o Auto-Learn, <span style="color: #10b981;">não altere os ganhos</span> — eles já são ótimos para o seu motor. Só mexa se trocar motor/bateria e rode o Auto-Learn de novo.</li>
+                     </ul>
+                 </div>
+                 
+                 <!-- AutoLearn Section -->
+                 <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 20px;">
+                     <h3 style="color: #10b981; font-size: 18px; font-weight: 700; margin-bottom: 15px;">🤖 Auto-Learning (Z-N)</h3>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                         <li><strong>Método:</strong> Ziegler-Nichols com relay. Encontra ganhos ótimos automaticamente.</li>
+                         <li><strong>Fase 1 (Soft Start):</strong> Pequena voltagem. Motor sobe devagar. Detecta inércia.</li>
+                         <li><strong>Fase 2 (Oscilação):</strong> Relé em amplitude maior. Motor oscila = sistema mede resposta.</li>
+                         <li><strong>Fase 3 (Refinement):</strong> Ajuste fino. Calcula Kp, Ki, Kd via equações Z-N.</li>
+                         <li><strong>Zero-Crossings:</strong> Conta quantas vezes RPM cruza setpoint. Precisa ≥4 para validar.</li>
+                         <li><strong>Tcr (Período crítico):</strong> Tempo entre oscilações. Determina frequência natural do sistema.</li>
+                         <li><strong>Acr (Amplitude crítica):</strong> Amplitude de pico-a-pico da oscilação no RPM.</li>
+                         <li><strong>🕐 Quantas vezes rodar?</strong> <span style="color: #10b981;">UMA VEZ.</span> Os ganhos são salvos automaticamente (💾) e recarregados ao abrir a página. Rodar a cada ligada é desnecessário e perigoso (o motor oscila durante o teste).</li>
+                         <li><strong>Quando re-treinar:</strong> apenas se trocar o motor, a bateria ou após grande variação de temperatura/carga.</li>
+                     </ul>
+                 </div>
+                 
+                 <!-- Brake & Load Section -->
+                 <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 20px;">
+                     <h3 style="color: #ef4444; font-size: 18px; font-weight: 700; margin-bottom: 15px;">🛑 Freio & Carga</h3>
+                     <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                         <li><strong>Load Torque (N·m):</strong> Torque resistivo. Pode ser carga mecânica ou freio simulado.</li>
+                         <li><strong>Freio Motor (toggle):</strong> Botão na interface liga/desliga a frenagem ativa + regeneração. ON = torque de freio aplicado (slider); OFF = roda livre (coast), torque ativo zerado.</li>
+                         <li><strong>K_friction:</strong> Coeficiente de fricção (0.002). Simula atrito de pneus + transmissão.</li>
+                         <li><strong>K_aerodynamic:</strong> Arrasto aerodinâmico (0.00001). Proporcional a RPM².</li>
+                         <li><strong>Brake Model:</strong> Fricção realista τ_brake = K_friction × ω + K_aero × ω². Impede "runaway".</li>
+                         <li><strong>Rate-Limit:</strong> Motor não pode subir > 3000 RPM/s. Proteção mecânica contra falha abrupta.</li>
+                         <li><strong>Motor State:</strong> IDLE (rpm < 100), RUNNING (rpm > 100), FAULT (overcurrent), THERMAL (T > 80°C).</li>
+                     </ul>
+                 </div>
+                 
+<!-- Telemetry Section -->
+                <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 20px;">
+                    <h3 style="color: #c084fc; font-size: 18px; font-weight: 700; margin-bottom: 15px;">📊 Telemetria</h3>
+                    <ul style="list-style: none; color: #cbd5e1; line-height: 2;">
+                        <li><strong>Throttle (%):</strong> Pedal do acelerador. 0% = parado, 100% = máxima velocidade. Mapeia para RPM target.</li>
+                        <li><strong>Power (kW):</strong> Potência = V × I / 1000. Energia consumida em tempo real.</li>
+                        <li><strong>Voltage (V):</strong> Tensão de saída após queda resistiva e descarga de bateria.</li>
+                        <li><strong>3-Phase Currents (I_u, I_v, I_w):</strong> Correntes nas 3 fases. Balanceadas em operação normal.</li>
+                        <li><strong>Duty Cycle:</strong> Razão cíclica (0-100%) do PWM que controla inversor.</li>
+                        <li><strong>Fault Code:</strong> 0x00 = OK, 0x01 = Overcurrent, 0x02 = Thermal, 0x03 = ambos.</li>
+                        <li><strong>Erro de Regulação (%):</strong> Diferença entre RPM alvo e real. < 5% = convergiu.</li>
+                        <li><strong>Temperatura Driver:</strong> Calor nos MOSFETs (≈ motor + 5°C). Proteção separada.</li>
+                        <li><strong>Erro Integral:</strong> Acumulador do PID. Monitorado para anti-windup.</li>
+                    </ul>
+                </div>
+
+                <!-- Project Info Section -->
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 20px; grid-column: 1 / -1;">
+                    <h3 style="color: #f59e0b; font-size: 18px; font-weight: 700; margin-bottom: 15px;">🚗 Sobre o Projeto — Controle de Motor BLDC para Veículo</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div>
+                            <h4 style="color: #fbbf24; margin-bottom: 10px; font-size: 15px;">Arquitetura</h4>
+                            <ul style="list-style: none; color: #cbd5e1; line-height: 2; font-size: 14px;">
+                                <li><strong>Bloco 1 — Motor BLDC:</strong> modelo elétrico + mecânico + térmico, com freio de fricção/arrasto.</li>
+                                <li><strong>Bloco 2 — FOC Controller:</strong> controle vetorial com PI na malha de velocidade.</li>
+                                <li><strong>Bloco 3 — Battery Model:</strong> descarga não-linear com SOC e queda por ESR.</li>
+                                <li><strong>Bloco 4 — Thermal Model:</strong> elevação de temperatura por perdas I²R.</li>
+                                <li><strong>Bloco 5 — Proteções:</strong> overcurrent (50A) e limite térmico (80°C).</li>
+                                 <li><strong>Bloco 6 — Freio Motor / Regeneração:</strong> toggle na interface liga/desliga a frenagem ativa e a recuperação de energia. ON = torque de freio aplicado + regen; OFF = roda livre (coast).</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #fbbf24; margin-bottom: 10px; font-size: 15px;">Física do Modelo</h4>
+                            <ul style="list-style: none; color: #cbd5e1; line-height: 2; font-size: 14px;">
+<li><strong>Dinâmica mecânica:</strong> J·dω/dt = τ_motor − B·ω − τ_freio − τ_carga</li>
+                                 <li><strong>Freio realista:</strong> τ_brake = K_f·ω + K_aero·ω²</li>
+                                 <li><strong>Freio Motor/Regen:</strong> toggle na interface; OFF zera o torque de freio ativo (motor em roda livre).</li>
+                                <li><strong>Correntes 3-fases:</strong> I_u = I_mag·cos(θ), defasadas 120°</li>
+                                <li><strong>Controle adaptativo:</strong> ganhos PID escalam com inércia (0.005/J) para servir qualquer motor do catálogo.</li>
+                                <li><strong>Rate-limit:</strong> aceleração ≤ 3000 RPM/s protege a mecânica.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #fbbf24; margin-bottom: 10px; font-size: 15px;">Objetivo & Uso</h4>
+                            <ul style="list-style: none; color: #cbd5e1; line-height: 2; font-size: 14px;">
+                                <li><strong>Finalidade:</strong> simular e calibrar o controlador antes do firmware real (ex.: ESP32).</li>
+                                <li><strong>Auto-Learn:</strong> método Ziegler-Nichols com relay em 3 fases (soft start → oscilação → refinamento).</li>
+                                <li><strong>Modo Real:</strong> conecta a hardware físico (serial/WebUSB) com mesmos parâmetros.</li>
+                                <li><strong>Catálogo:</strong> 3 motores (100W–1kW) e 3 baterias (LiPo/LiFePO4/Lead-Acid).</li>
+                                <li><strong>Ganhos finais:</strong> copie Kp/Ki/Kd do Auto-Learn para o firmware do veículo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+             </div>
+             
+             <div style="margin-top: 30px; padding-top: 25px; border-top: 2px solid rgba(99, 102, 241, 0.3); color: #cbd5e1; line-height: 1.8;">
+                 <p style="font-size: 14px;">
+                     <strong>💡 Dica:</strong> O sistema usa simulação em tempo real do motor BLDC com modelo de bateria não-linear.
+                     Todos os parâmetros podem ser ajustados com <strong>sliders</strong> acima. O <strong>Auto-Learn</strong> encontra
+                     Kp/Ki/Kd ótimos executando 3 fases controladas de 2 segundos no total. Para usar no carro real (ESP32 + BYD Seagull),
+                     apenas copie os ganhos finais para o firmware.
+                 </p>
+             </div>
+         </div>
+     </div>
+ </body>
+ </html>

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Índice de Visualizações - Controladora PMSM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 60px 40px;
+        }
+        
+        .intro {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 50px;
+        }
+        
+        .intro h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .intro p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .card {
+            background: white;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card:hover {
+            border-color: #667eea;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .card-icon {
+            font-size: 2em;
+            margin-right: 10px;
+        }
+        
+        .card-body {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-description {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .card-specs {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #999;
+            margin-bottom: 20px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .card-specs ul {
+            list-style: none;
+        }
+        
+        .card-specs li {
+            padding: 4px 0;
+        }
+        
+        .card-specs li:before {
+            content: "• ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .card-footer {
+            margin-top: auto;
+        }
+        
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            border: 2px solid #667eea;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .category-title {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-top: 50px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .download-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #f9fbfd 100%);
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .download-section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .download-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        
+        .download-item:hover {
+            border-color: #667eea;
+            background: #f9fbfd;
+        }
+        
+        .file-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .file-size {
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f0f4ff 0%, #f9fbfd 100%);
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        footer {
+            background: #f9f9f9;
+            padding: 40px;
+            text-align: center;
+            color: #999;
+            border-top: 1px solid #ddd;
+        }
+        
+        footer p {
+            margin-bottom: 10px;
+        }
+        
+        .breadcrumb {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-right: 8px;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 Controladora PMSM/BLDC</h1>
+            <p>Centro de Visualizações — Esquemáticos, PCB, Simulação SPICE</p>
+        </header>
+        
+        <div class="content">
+            <!-- Introdução -->
+            <div class="intro">
+                <h2>📚 Bem-vindo ao Índice de Visualizações</h2>
+                <p>
+                    Este é o ponto de partida para explorar todas as visualizações, diagramas e documentação 
+                    da controladora de motor PMSM/BLDC. Cada seção abaixo contém diferentes perspectivas 
+                    do projeto: esquemáticos eletrônicos, layouts de PCB, simulações SPICE e análises detalhadas.
+                </p>
+                <p>
+                    <strong>Objetivo:</strong> Fornecer uma visão 360° do projeto com imagens, gráficos e tabelas 
+                    para facilitar a compreensão, prototipagem e implementação.
+                </p>
+            </div>
+            
+            <!-- Estatísticas -->
+            <h2 class="category-title">📊 Projeto em Números</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">400V</div>
+                    <div class="stat-label">Tensão DC nominal</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">50A</div>
+                    <div class="stat-label">Corrente contínua</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">20kHz</div>
+                    <div class="stat-label">Frequência PWM</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">~20kW</div>
+                    <div class="stat-label">Potência nominal</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">94.3%</div>
+                    <div class="stat-label">Eficiência simulada</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">150×100mm</div>
+                    <div class="stat-label">Tamanho PCB</div>
+                </div>
+            </div>
+            
+            <!-- Visualizações Principais -->
+            <h2 class="category-title">🎨 Visualizações Principais</h2>
+            
+            <div class="grid">
+                <!-- Esquemático Elétrico -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">⚡</span>
+                        Esquemático Elétrico
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Diagrama completo do inversor 3-fases com todos os componentes, 
+                            conectadas e anotadas. Inclui gate driver, MOSFETs, sensores e proteções.
+                        </p>
+                        <div class="card-specs">
+                            <strong>Conteúdo:</strong>
+                            <ul>
+                                <li>Inversor 3-fases (6 MOSFETs)</li>
+                                <li>Gate driver DRV8302</li>
+                                <li>Capacitores bulk (470µF)</li>
+                                <li>Sensores de corrente (shunts)</li>
+                                <li>Filtros EMI (ferrites)</li>
+                                <li>Conexões motor</li>
+                                <li>Tabelas e netlist SPICE</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="esquematico_interativo.html" class="btn-primary">
+                                🔍 Ver Esquemático Completo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- PCB Layout -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">🎯</span>
+                        Layout da Placa PCB
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Visualização das camadas superior e inferior da placa com componentes 
+                            e trilhas. Inclui parâmetros de design e legenda de cores.
+                        </p>
+                        <div class="card-specs">
+                            <strong>Recursos:</strong>
+                            <ul>
+                                <li>Camada superior (componentes)</li>
+                                <li>Camada inferior (trilhas)</li>
+                                <li>Vias termais (dissipação)</li>
+                                <li>Planos GND/VCC</li>
+                                <li>Especificações técnicas</li>
+                                <li>Tabelas comparativas</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="visualizador_pcb.html" class="btn-primary">
+                                🖼️ Ver Layout PCB
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visualizador 3D AWWWARDS PREMIUM -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">🏆</span>
+                        Visualizador 3D AWWWARDS (58 Componentes Reais)
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Visualização 3D PREMIUM nível Awwwards com TODOS os 58 componentes reais do BOM,
+                            netlist profissional, iluminação PBR e interatividade fluida.
+                        </p>
+                        <div class="card-specs">
+                            <strong>🏆 Recursos PREMIUM:</strong>
+                            <ul>
+                                <li>✅ 58 componentes reais do BOM integrados</li>
+                                <li>✅ Netlist com trilhas de cobre conectando componentes</li>
+                                <li>✅ Iluminação PBR com 4 fontes de luz + shadows realtime</li>
+                                <li>✅ Tooltips interativos ao hover em componentes</li>
+                                <li>✅ Auto-rotação suave + controles OrbitControls</li>
+                                <li>✅ 60 FPS em GPUs modernas</li>
+                                <li>✅ Renderização profissional nível OEM</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="visualizador_3d_awwwards.html" class="btn-primary">
+                                🏆 Abrir Visualizador AWWWARDS
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos SPICE -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📈</span>
+                        Simulação SPICE
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Gráficos de simulação com 9 painéis mostrando: tensão DC-link, 
+                            correntes de fase, potência dissipada, eficiência e espectro FFT.
+                        </p>
+                        <div class="card-specs">
+                            <strong>Painéis inclusos:</strong>
+                            <ul>
+                                <li>DC-Link voltage & ripple</li>
+                                <li>PWM signals (20 kHz)</li>
+                                <li>Phase currents (RMS)</li>
+                                <li>Current ripple detail</li>
+                                <li>Current histogram</li>
+                                <li>Thermal dissipation</li>
+                                <li>Inverter efficiency</li>
+                                <li>FFT spectrum analysis</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="simulation_results.png" class="btn-primary" download>
+                                ⬇️ Baixar Gráficos (PNG)
+                            </a>
+                            <a href="simulation_results.pdf" class="btn-secondary" download>
+                                📄 PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Documentação Técnica -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">📋</span>
+                        Documentação Técnica
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Análise completa de 10 soluções gratuitas de PCB design e SPICE, 
+                            com recomendações, testes e métricas de simulação.
+                        </p>
+                        <div class="card-specs">
+                            <strong>Documentos disponíveis:</strong>
+                            <ul>
+                                <li>Análise de 10 soluções</li>
+                                <li>Comparação de ferramentas</li>
+                                <li>Métricas de simulação</li>
+                                <li>Testes funcionais</li>
+                                <li>Guia de uso (KiCad + Ngspice)</li>
+                                <li>Bill of Materials</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="RELATORIO_FERRAMENTAS_PCB_SPICE.md" class="btn-primary">
+                                📄 Abrir Relatório Técnico
+                            </a>
+                            <a href="solucoes.md" class="btn-secondary">
+                                📝 Análise de Soluções
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Seção de Downloads -->
+            <h2 class="category-title">📥 Downloads de Artefatos</h2>
+            
+            <div class="download-section">
+                <h3>Arquivos Disponíveis para Download</h3>
+                
+                <div class="download-grid">
+                    <div class="download-item">
+                        <div class="file-icon">🖼️</div>
+                        <div class="file-name">Esquemático KiCad</div>
+                        <div class="file-size">schematic_image.svg (261 KB)</div>
+                        <a href="schematic_image.svg" class="btn-secondary" download>Baixar SVG</a>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="file-icon">📊</div>
+                        <div class="file-name">Gráficos SPICE</div>
+                        <div class="file-size">simulation_results.png (420 KB)</div>
+                        <a href="simulation_results.png" class="btn-secondary" download>Baixar PNG</a>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="file-icon">📄</div>
+                        <div class="file-name">Relatório PDF</div>
+                        <div class="file-size">simulation_results.pdf (229 KB)</div>
+                        <a href="simulation_results.pdf" class="btn-secondary" download>Baixar PDF</a>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="file-icon">🎨</div>
+                        <div class="file-name">Gráficos Vetoriais</div>
+                        <div class="file-size">simulation_results.svg (988 KB)</div>
+                        <a href="simulation_results.svg" class="btn-secondary" download>Baixar SVG</a>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="file-icon">🔬</div>
+                        <div class="file-name">Netlist SPICE</div>
+                        <div class="file-size">schematic_fixed.cir (3.7 KB)</div>
+                        <a href="schematic_fixed.cir" class="btn-secondary" download>Baixar CIR</a>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="file-icon">📋</div>
+                        <div class="file-name">Análise de Soluções</div>
+                        <div class="file-size">solucoes.md (28 KB)</div>
+                        <a href="solucoes.md" class="btn-secondary" download>Baixar MD</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guia Rápido -->
+            <h2 class="category-title">🚀 Guia Rápido de Navegação</h2>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">👨‍🏫</span>
+                        Iniciante? Comece Aqui
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Se você é novo no projeto, siga este caminho:
+                        </p>
+                        <div class="card-specs">
+                            <strong>Ordem recomendada:</strong>
+                            <ul>
+                                <li>1️⃣ Leia a introdução (este índice)</li>
+                                <li>2️⃣ Veja o esquemático elétrico</li>
+                                <li>3️⃣ Explore o layout da PCB</li>
+                                <li>4️⃣ Analise os gráficos SPICE</li>
+                                <li>5️⃣ Leia a documentação técnica</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="esquematico_interativo.html" class="btn-primary">
+                                Começar Agora
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">⚙️</span>
+                        Engenheiro/Técnico
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Para análise técnica detalhada:
+                        </p>
+                        <div class="card-specs">
+                            <strong>Recursos técnicos:</strong>
+                            <ul>
+                                <li>📊 Métricas de simulação</li>
+                                <li>🔧 Bill of Materials</li>
+                                <li>📐 Especificações PCB</li>
+                                <li>🔌 Pinagem e conexões</li>
+                                <li>⚡ Análise de potência</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="RELATORIO_FERRAMENTAS_PCB_SPICE.md" class="btn-primary">
+                                Ver Análise Técnica
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">🎯</span>
+                        Prototipagem
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">
+                            Tudo o que precisa para construir o prototipo:
+                        </p>
+                        <div class="card-specs">
+                            <strong>Para construir:</strong>
+                            <ul>
+                                <li>📋 Lista de componentes (BOM)</li>
+                                <li>🔌 Guia de conexões</li>
+                                <li>📐 Layout PCB (JLCPCB)</li>
+                                <li>⚠️ Avisos de segurança</li>
+                                <li>🔧 Montagem passo-a-passo</li>
+                            </ul>
+                        </div>
+                        <div class="card-footer">
+                            <a href="visualizador_pcb.html" class="btn-primary">
+                                Ver Guia de Prototipagem
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informações do Projeto -->
+            <h2 class="category-title">ℹ️ Informações do Projeto</h2>
+            
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 8px; border-left: 4px solid #667eea; line-height: 1.8;">
+                <p><strong>Nome:</strong> Controladora Universal de Motores Elétricos PMSM/BLDC</p>
+                <p><strong>Aplicabilidade:</strong> Tesla Model 3, BYD Seagull, Nissan Leaf, Hyundai Ioniq 6, VW ID.4, Chevy Bolt</p>
+                <p><strong>Plataforma:</strong> ESP32 (prototipagem) → STM32H7 (piloto) → NXP SoC (série)</p>
+                <p><strong>Status:</strong> Fase 1 Prototipagem (Documentação + Firmware Base) ✅</p>
+                <p><strong>Ferramentas:</strong> KiCad 7.0+, Ngspice 44.2, Python 3 + Matplotlib</p>
+                <p><strong>Data:</strong> 2026-08-14</p>
+                <p><strong>Próximos Passos:</strong> Layout PCB → Firmware SimpleFOC → Testes com motor real</p>
+            </div>
+        </div>
+        
+        <footer>
+            <p><strong>Controladora PMSM/BLDC — Centro de Visualizações</strong></p>
+            <p style="margin-top: 20px; font-size: 0.9em;">
+                Todas as visualizações geradas automaticamente em 2026-08-14
+            </p>
+            <p style="margin-top: 15px; font-size: 0.85em; color: #c41e3a;">
+                ⚠️ AVISO: Este projeto trabalha com tensões de até 400V DC e correntes de até 100A. 
+                Requer experiência em eletrônica de potência e validação profissional antes de uso em produção.
+            </p>
+            <p style="margin-top: 15px; font-size: 0.85em;">
+                Dúvidas? Consulte a documentação técnica ou acesse 
+                <a href="https://github.com/anomalyco/opencode" style="color: #667eea;">opencode repository</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

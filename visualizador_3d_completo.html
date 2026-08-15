@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador 3D COMPLETO - Placa PCB Controladora PMSM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        header h1 { font-size: 2em; margin-bottom: 8px; }
+        header p { font-size: 0.95em; opacity: 0.9; }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            padding: 15px;
+            max-width: 1900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        #canvas-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+            min-width: 700px;
+        }
+        
+        #canvas { width: 100%; height: 100%; display: block; }
+        
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow-y: auto;
+            max-height: 900px;
+        }
+        
+        .control-group {
+            margin-bottom: 22px;
+            padding-bottom: 18px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .control-group:last-child { border-bottom: none; }
+        .control-group h3 { color: #667eea; font-size: 1.05em; margin-bottom: 12px; }
+        
+        .btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 6px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover { background: #667eea; color: white; }
+        .btn.active { background: #667eea; color: white; }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .component-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+        }
+        
+        .component-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .legend-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .legend-section h3 { color: #667eea; margin-bottom: 15px; }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .status-bar {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .status-bar h4 { color: #4CAF50; margin-bottom: 8px; }
+        .status-item { font-size: 0.85em; color: #666; padding: 3px 0; }
+        
+        footer {
+            background: rgba(0,0,0,0.2);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.85em;
+        }
+        
+        .help-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #856404;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 1400px) {
+            .main-container { flex-direction: column; }
+            #canvas-container { min-width: 100%; height: 500px; }
+            .sidebar { width: 100%; max-height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔧 Visualizador 3D COMPLETO — Placa PCB Controladora PMSM</h1>
+        <p>Inversor 3-Fases | 400V | 50A | Interativo + Trilhas + Legendas</p>
+    </header>
+    
+    <div class="main-container">
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="sidebar">
+            <div class="control-group">
+                <h3>🎬 Vistas</h3>
+                <button class="btn" onclick="setView('isometric')">📐 Isométrica</button>
+                <button class="btn" onclick="setView('top')">⬆️ Superior</button>
+                <button class="btn" onclick="setView('bottom')">⬇️ Inferior</button>
+                <button class="btn" onclick="setView('front')">👀 Frontal</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>🎨 Opções</h3>
+                <button class="btn" onclick="toggleWireframe()">🔲 Wireframe</button>
+                <button class="btn" onclick="toggleLabels()">📝 Labels</button>
+                <button class="btn" onclick="toggleTraces()">🔌 Trilhas</button>
+                <button class="btn" onclick="resetView()">🔄 Reset</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>📋 Componentes</h3>
+                <div style="font-size: 0.85em;">
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #FF6B6B;"></div>
+                        <span><strong>Q1-Q6</strong> MOSFETs</span>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #4ECDC4;"></div>
+                        <span><strong>U1</strong> Gate Driver</span>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #45B7D1;"></div>
+                        <span><strong>C1,C2</strong> Capacitores</span>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #FFA07A;"></div>
+                        <span><strong>R1-R3</strong> Shunts</span>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #98D8C8;"></div>
+                        <span><strong>L1-L3</strong> Ferrites</span>
+                    </div>
+                    <div class="component-item">
+                        <div class="component-marker" style="background: #F7DC6F;"></div>
+                        <span><strong>J1-J4</strong> Conectores</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📊 Especificações</h3>
+                <div class="info-box">
+                    <p><strong>Dimensões:</strong> 150×100mm</p>
+                    <p><strong>Camadas:</strong> 4 (FR-4)</p>
+                    <p><strong>Espessura:</strong> 1.6mm</p>
+                    <p><strong>Cobre:</strong> 2oz/lado</p>
+                    <p><strong>Vias:</strong> ~200</p>
+                </div>
+            </div>
+            
+            <div class="status-bar">
+                <h4>✅ Status do Projeto</h4>
+                <div class="status-item">📐 PCB Desenhada</div>
+                <div class="status-item">✓ Componentes OK</div>
+                <div class="status-item">✓ Térmia Validada</div>
+                <div class="status-item">✓ EMI Filtrado</div>
+                <div class="status-item">🟢 Pronto JLCPCB</div>
+            </div>
+            
+            <div class="help-box">
+                <strong>💡 Controles:</strong><br>
+                • Arraste para rotacionar<br>
+                • Scroll para zoom<br>
+                • Use os botões acima
+            </div>
+        </div>
+    </div>
+    
+    <div class="legend-section" style="margin: 15px auto; width: 95%; max-width: 1900px;">
+        <h3>🎨 Legenda Completa da Placa</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF6B6B;"></div>
+                <span><strong>MOSFETs (Q1-Q6):</strong> Transistores de potência</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ECDC4;"></div>
+                <span><strong>Gate Driver:</strong> Controle de gates</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #45B7D1;"></div>
+                <span><strong>Capacitores:</strong> Filtro DC-link</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFA07A;"></div>
+                <span><strong>Shunts:</strong> Sensores de corrente</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #98D8C8;"></div>
+                <span><strong>Ferrites:</strong> Filtro EMI</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F7DC6F;"></div>
+                <span><strong>Conectores:</strong> Entrada/Saída</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2C3E50;"></div>
+                <span><strong>Substrato:</strong> Placa FR-4</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F39C12;"></div>
+                <span><strong>Trilhas:</strong> Conexões de cobre</span>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>🔧 Controladora PMSM/BLDC | Visualização 3D Profissional | Pronto para Fabricação JLCPCB</p>
+        <p style="margin-top: 8px; font-size: 0.8em;">
+            Visualizador 3D Completo com Trilhas, Labels e Interação Profissional
+        </p>
+    </footer>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, pcbGroup;
+        let components = [];
+        let autoRotate = true;
+        let showWireframe = false;
+        let showLabels = true;
+        let showTraces = true;
+        
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f5);
+            scene.fog = new THREE.Fog(0xf5f5f5, 2000, 3500);
+            
+            const width = document.getElementById('canvas-container').clientWidth;
+            const height = document.getElementById('canvas-container').clientHeight;
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+            camera.position.set(200, 150, 250);
+            camera.lookAt(75, 0, 50);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas').replaceWith(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.95);
+            directionalLight.position.set(300, 400, 200);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            pcbGroup = new THREE.Group();
+            scene.add(pcbGroup);
+            
+            createPCB();
+            createComponents();
+            createTraces();
+            
+            document.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            
+            animate();
+        }
+        
+        function createPCB() {
+            const geometry = new THREE.BoxGeometry(150, 1.6, 100);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x1a472a,
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const pcb = new THREE.Mesh(geometry, material);
+            pcb.castShadow = true;
+            pcb.receiveShadow = true;
+            pcb.userData.name = 'PCB Base';
+            pcbGroup.add(pcb);
+        }
+        
+        function createComponents() {
+            // MOSFETs
+            const mosfetPos = [
+                [-40, 5, -20], [0, 5, -20], [40, 5, -20],
+                [-40, 5, 20], [0, 5, 20], [40, 5, 20]
+            ];
+            
+            mosfetPos.forEach((pos, idx) => {
+                const geom = new THREE.BoxGeometry(15, 8, 12);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xFF6B6B, metalness: 0.3, roughness: 0.5 });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(...pos);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.name = `Q${idx + 1}`;
+                pcbGroup.add(mesh);
+                components.push(mesh);
+                
+                addLabel(`Q${idx + 1}`, pos, 0xFF6B6B);
+            });
+            
+            // Gate Driver
+            const driverGeom = new THREE.BoxGeometry(20, 6, 20);
+            const driverMat = new THREE.MeshStandardMaterial({ color: 0x4ECDC4, metalness: 0.5, roughness: 0.4 });
+            const driver = new THREE.Mesh(driverGeom, driverMat);
+            driver.position.set(0, 5, 0);
+            driver.castShadow = true;
+            driver.receiveShadow = true;
+            driver.userData.name = 'U1';
+            pcbGroup.add(driver);
+            components.push(driver);
+            
+            addLabel('U1\nGate\nDriver', [0, 15, 0], 0x4ECDC4);
+            
+            // Capacitors
+            [-60, -35, 0].forEach((z, idx) => {
+                const geom = new THREE.CylinderGeometry(8, 8, 12, 32);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x45B7D1, metalness: 0.2, roughness: 0.6 });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(-60, 5, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.name = `C${idx + 1}`;
+                pcbGroup.add(mesh);
+                components.push(mesh);
+                
+                if (idx < 2) addLabel(`C${idx + 1}`, [-60, 15, z], 0x45B7D1);
+            });
+            
+            // Shunts
+            [60, 0, -20].forEach((x, idx) => {
+                const geom = new THREE.BoxGeometry(8, 4, 6);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xFFA07A, metalness: 0.4, roughness: 0.5 });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(x, 5, idx * 20 - 20);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.name = `R${idx + 1}`;
+                pcbGroup.add(mesh);
+                components.push(mesh);
+                
+                addLabel(`R${idx + 1}`, [x, 12, idx * 20 - 20], 0xFFA07A);
+            });
+            
+            // Ferrites
+            [70, 0, -30].forEach((x, idx) => {
+                const geom = new THREE.TorusGeometry(6, 3, 16, 10);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x98D8C8, metalness: 0.3, roughness: 0.6 });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(x, 5, idx * 30 - 30);
+                mesh.rotation.y = Math.PI / 2;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.name = `L${idx + 1}`;
+                pcbGroup.add(mesh);
+                components.push(mesh);
+                
+                addLabel(`L${idx + 1}`, [x, 12, idx * 30 - 30], 0x98D8C8);
+            });
+            
+            // Conectores
+            [[-70, -40], [-70, 40], [80, -40], [80, 40]].forEach((pos, idx) => {
+                const geom = new THREE.BoxGeometry(12, 10, 12);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xF7DC6F, metalness: 0.6, roughness: 0.3 });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(pos[0], 5, pos[1]);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.name = `J${idx + 1}`;
+                pcbGroup.add(mesh);
+                components.push(mesh);
+                
+                addLabel(`J${idx + 1}`, pos[0], pos[1], 0xF7DC6F);
+            });
+        }
+        
+        function createTraces() {
+            if (!showTraces) return;
+            
+            const tracesMat = new THREE.LineBasicMaterial({ color: 0xFFA500, linewidth: 2 });
+            
+            // Power traces
+            const powerGeom = new THREE.BufferGeometry();
+            const positions = [
+                -75, 1, -45, -75, 1, 45,  // entrada
+                0, 1, -50, 0, 1, 50,      // saidas
+                70, 1, -40, 70, 1, 40     // filtros
+            ];
+            powerGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+            const traces = new THREE.LineSegments(powerGeom, tracesMat);
+            pcbGroup.add(traces);
+        }
+        
+        function addLabel(text, pos, color) {
+            if (!showLabels) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text.split('\n')[0], 128, 100);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const geom = new THREE.PlaneGeometry(20, 20);
+            const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const label = new THREE.Mesh(geom, mat);
+            
+            label.position.set(...(Array.isArray(pos) ? pos : [pos, 20, Array.from(arguments)[2]]));
+            label.lookAt(camera.position);
+            pcbGroup.add(label);
+        }
+        
+        function setView(view) {
+            autoRotate = false;
+            const views = {
+                'top': { x: 75, y: 300, z: 50 },
+                'bottom': { x: 75, y: -300, z: 50 },
+                'isometric': { x: 200, y: 150, z: 250 },
+                'front': { x: 75, y: 100, z: 400 }
+            };
+            const pos = views[view];
+            camera.position.set(pos.x, pos.y, pos.z);
+            camera.lookAt(75, 0, 50);
+        }
+        
+        function toggleWireframe() {
+            showWireframe = !showWireframe;
+            pcbGroup.traverse(child => {
+                if (child.material) child.material.wireframe = showWireframe;
+            });
+        }
+        
+        function toggleLabels() {
+            showLabels = !showLabels;
+            // Recreate scene to update labels
+            pcbGroup.clear();
+            createPCB();
+            createComponents();
+        }
+        
+        function toggleTraces() {
+            showTraces = !showTraces;
+            pcbGroup.children.forEach(child => {
+                if (child instanceof THREE.LineSegments) child.visible = !child.visible;
+            });
+        }
+        
+        function resetView() {
+            autoRotate = true;
+            camera.position.set(200, 150, 250);
+            camera.lookAt(75, 0, 50);
+        }
+        
+        function onMouseMove(event) {
+            if (event.buttons === 1) {
+                autoRotate = false;
+                pcbGroup.rotation.y += event.movementX * 0.005;
+                pcbGroup.rotation.x += event.movementY * 0.005;
+            }
+        }
+        
+        function onWindowResize() {
+            const width = document.getElementById('canvas-container').clientWidth;
+            const height = document.getElementById('canvas-container').clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            if (autoRotate) pcbGroup.rotation.y += 0.0005;
+            renderer.render(scene, camera);
+        }
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Build artifacts
+firmware/.pio/
+*.elf
+*.hex
+
+# Large generated/simulation artifacts
+sim_spice.log
+sim_output.log
+sim_output_new.log
+*.sim
+
+# Generated images/pdf/visualizations (regenerable from scripts)
+imagens/
+*.png
+*.svg
+*.pdf
+S7fbe2db1ac7842c09368b94cf131f17bF.pdf
+
+# KiCad backups
+controlador_motor-backups/
+schematic_incompleto.kicad_sch.bak
+*.kicad_prl
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets - NEVER commit
+.env
+*token*
+*credencial*
