@@ -191,3 +191,14 @@ ls gerbers/*.gbr | wc -l  # ≥ 10 (layer F.Cu, B.Cu, F.Mask, B.Mask, etc)
 **Resultado**: BOM total **$240 → $84.78** componentes; **~$120/placa** (1-5), ~$102 (10-50), ~$90 (100+).
 
 **Verificação**: somas conferidas por script Python em `bom.csv` (TOTAL = 84.78) e tabela seção 6 do `arquitetura.md` (soma = 84.78).
+
+---
+
+## Tarefa: Submissão do projeto ao GitHub [CONCLUÍDA ✅ 2026-08-15]
+
+**Entregável**: repositório público criado e pusheado.
+- URL: https://github.com/testinhottt-ux/controlmotor
+- Branch: `main` (git init -b main), 104 arquivos, commit `0914758`.
+- .gitignore exclui `firmware/.pio/` (44MB de build), logs SPICE, imagens/PDF gerados e credenciais.
+- **Verificação**: push com exit 0; repositório confirmado via API GitHub (public, default_branch=main).
+- Token usado via `/home/teste/propectordenegocios/token` (removido do remote URL após push — sem segredo persistido).
