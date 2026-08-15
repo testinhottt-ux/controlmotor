@@ -283,3 +283,12 @@ bom.csv
 **Última Atualização**: 2026-08-14 17:15 UTC  
 **Manutenedor**: OpenCode AG3  
 **Padrão**: AG3.md Seção 11
+
+## Arquivo: controlmotor-dual.html (atualização 2026-08-15)
+
+### Mudança
+- Card "Esquema Elétrico do Controlador" com SVG inline (esquema.svg, 624 linhas) inserido fora das seções de modo — sempre visível.
+- Sem mudanças de funções JS; JS validado com `node --check` (43462 chars).
+
+### Dependências
+- `esquema.svg` (embutido inline — sem dependência externa em runtime).

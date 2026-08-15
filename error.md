@@ -376,3 +376,15 @@ kicad /home/teste/controlmotor/schematic.kicad_sch &
 **Proxima ação**: Declarar vitória com que temos (schematic base + visualizadores 3D + SPICE), documentar lista de tarefas manuais para GUI.
 
 ---
+
+---
+
+## ERRO 8: Divs desbalanceados após inserir card HTML na página
+
+**Sintoma**: `controlmotor-dual.html` com 258 `<div>` abertos vs 257 fechados.
+
+**Causa-raiz**: substituí um anchor de 3 `</div>` (fechavam card PID + seção realMode + container) por um card novo + apenas 2 fechamentos — o card novo ficou aninhado dentro do card PID.
+
+**Correção permanente**: re-verificar balanceamento (`<div>` vs `</div>`) antes/depois de qualquer replace de bloco HTML; fechar seções pai (card PID, realMode) ANTES do novo card e manter o fechamento do container.
+
+**Lição**: anchor com múltiplos fechamentos = contabilizar TODOS os closes que ele continha no novo texto.

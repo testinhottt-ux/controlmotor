@@ -213,3 +213,17 @@ ls gerbers/*.gbr | wc -l  # ≥ 10 (layer F.Cu, B.Cu, F.Mask, B.Mask, etc)
 - **Links verificados (HTTP 200)**:
   - Visualização: https://testinhottt-ux.github.io/controlmotor/controlmotor-dual.html
   - Root: https://testinhottt-ux.github.io/controlmotor/
+
+---
+
+## Tarefa: Esquema elétrico embutido na página + push GitHub [CONCLUÍDA ✅ 2026-08-15]
+
+**Entregável**: `esquema.svg` embutido inline em `controlmotor-dual.html` (card "🔌 Esquema Elétrico do Controlador"), self-contained (funciona em LittleFS/ESP32 e GitHub Pages sem arquivo extra).
+- Estrutura HTML: card adicionado fora das seções de modo (sempre visível), fundo branco para contraste com tema escuro.
+- **Verificação**:
+  - `<div>` balanceados: 258 abertos / 258 fechados (bug de aninhamento detectado e corrigido).
+  - `node --check` no JS inline: SYNTAX OK.
+  - Screenshot headless (chromium, 1400x5200): card visível, 21.7% de pixels não-brancos no SVG (desenho renderiza), 247 cores distintas.
+- **Push GitHub**: commit + push para origin/main (testinhottt-ux/controlmotor).
+
+**Lição**: ao inserir bloco HTML via string replace, conferir o balanceamento de tags ANTES e DEPOIS (o anchor substituído continha `</div>` de fechamento — substituição perdeu 1 fechamento).

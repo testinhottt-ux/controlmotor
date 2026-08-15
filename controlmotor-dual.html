@@ -796,6 +796,638 @@
                 </div>
             </div>
         </div>
+
+            <!-- Esquema Elétrico do Controlador -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">🔌 Esquema Elétrico do Controlador (12V-48V / 30A)</div>
+                <div style="background: #ffffff; border-radius: 12px; padding: 12px; overflow: hidden;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="100%" height="100%">
+  <!-- Definições de Estilos CSS -->
+  <style>
+    .grid-line { stroke: #E2E8F0; stroke-width: 0.5; stroke-dasharray: 2 4; }
+    .wire { fill: none; stroke: #475569; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .wire-pwr-48v { fill: none; stroke: #E11D48; stroke-width: 2.5; stroke-linecap: round; }
+    .wire-pwr-5v { fill: none; stroke: #F59E0B; stroke-width: 2; stroke-linecap: round; }
+    .wire-pwr-3v3 { fill: none; stroke: #10B981; stroke-width: 2; stroke-linecap: round; }
+    .wire-gnd { fill: none; stroke: #1E3A8A; stroke-width: 2.5; stroke-linecap: round; }
+    .wire-gate { fill: none; stroke: #8B5CF6; stroke-width: 1.5; stroke-linecap: round; }
+    .wire-analog { fill: none; stroke: #D97706; stroke-width: 1.5; stroke-linecap: round; }
+    .ic-box { fill: #F8FAFC; stroke: #1E293B; stroke-width: 2.5; rx: 8px; }
+    .block-box { fill: #F1F5F9; stroke: #475569; stroke-width: 1.5; stroke-dasharray: 4 4; rx: 6px; }
+    .comp-line { fill: none; stroke: #1E293B; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .text-title { font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; fill: #0F172A; }
+    .text-subtitle { font-family: sans-serif; font-size: 12px; fill: #475569; font-weight: 500; }
+    .text-pin { font-family: monospace; font-size: 11px; fill: #334155; font-weight: bold; }
+    .text-comp-label { font-family: sans-serif; font-size: 10px; fill: #475569; font-weight: bold; }
+    .text-net { font-family: monospace; font-size: 10px; fill: #2563EB; font-weight: bold; }
+    .junction { fill: #1E293B; }
+    .junction-pwr { fill: #E11D48; }
+    .junction-gnd { fill: #1E3A8A; }
+  </style>
+
+  <!-- Definições de Componentes Reutilizáveis (Templates) -->
+  <defs>
+    <!-- Grade de Fundo (CAD Style) -->
+    <pattern id="cad-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#F1F5F9" stroke-width="1"/>
+      <circle cx="0" cy="0" r="1" fill="#CBD5E1"/>
+    </pattern>
+
+    <!-- Símbolo: MOSFET Canal N (IRFB4110) -->
+    <g id="n_mosfet">
+      <path d="M 0,-30 L 0,-15" class="comp-line"/> <!-- Drain -->
+      <path d="M 0,15 L 0,30" class="comp-line"/> <!-- Source -->
+      <path d="M -30,0 L -15,0" class="comp-line"/> <!-- Gate -->
+      <path d="M -15,-20 L -15,20" class="comp-line" stroke-width="3"/> <!-- Placa do Gate -->
+      <path d="M -8,-20 L -8,-8" class="comp-line" stroke-width="3"/> <!-- Segmento Drain -->
+      <path d="M -8,-6 L -8,6" class="comp-line" stroke-width="3"/> <!-- Segmento Bulk -->
+      <path d="M -8,8 L -8,20" class="comp-line" stroke-width="3"/> <!-- Segmento Source -->
+      <path d="M -8,-14 L 0,-14" class="comp-line"/> <!-- Conexão interna Drain -->
+      <path d="M -8,14 L 0,14" class="comp-line"/> <!-- Conexão interna Source -->
+      <path d="M -8,0 L 0,0 L 0,14" class="comp-line" fill="none"/> <!-- Bulk para Source -->
+      <polygon points="-8,0 -16,-4 -16,4" fill="#1E293B"/> <!-- Seta de Canal N -->
+    </g>
+
+    <!-- Símbolo: Resistor Horizontal -->
+    <g id="resistor_h">
+      <path d="M 0,0 L 10,0 L 13,-6 L 19,6 L 25,-6 L 31,6 L 37,-6 L 43,6 L 47,0 L 57,0" fill="none" stroke="#1E293B" stroke-width="2"/>
+    </g>
+
+    <!-- Símbolo: Resistor Vertical -->
+    <g id="resistor_v">
+      <path d="M 0,0 L 0,10 L -6,13 L 6,19 L -6,25 L 6,31 L -6,37 L 6,43 L 0,47 L 0,57" fill="none" stroke="#1E293B" stroke-width="2"/>
+    </g>
+
+    <!-- Símbolo: Capacitor Não-Polarizado Vertical -->
+    <g id="cap_v">
+      <path d="M 0,0 L 0,16" class="comp-line"/>
+      <path d="M -12,16 L 12,16" class="comp-line" stroke-width="3"/>
+      <path d="M -12,21 L 12,21" class="comp-line" stroke-width="3"/>
+      <path d="M 0,21 L 0,37" class="comp-line"/>
+    </g>
+
+    <!-- Símbolo: Capacitor Eletrolítico (Polarizado) Vertical -->
+    <g id="cap_pol_v">
+      <path d="M 0,0 L 0,15" class="comp-line"/>
+      <path d="M -12,15 L 12,15" class="comp-line" stroke-width="3"/> <!-- Positivo -->
+      <path d="M -12,20 C -6,22 6,22 12,20" fill="none" stroke="#1E293B" stroke-width="2"/> <!-- Negativo Curvo -->
+      <path d="M 0,20 L 0,35" class="comp-line"/>
+      <text x="14" y="12" class="text-comp-label" fill="#E11D48">+</text>
+    </g>
+
+    <!-- Símbolo: Indutor Vertical -->
+    <g id="inductor_v">
+      <path d="M 0,0 L 0,8 C -6,11 -6,16 0,19 C -6,22 -6,27 0,30 C -6,33 -6,38 0,41 C -6,44 -6,49 0,52 L 0,60" fill="none" stroke="#1E293B" stroke-width="2"/>
+    </g>
+
+    <!-- Símbolo: Indutor Horizontal -->
+    <g id="inductor_h">
+      <path d="M 0,0 L 8,0 C 11,-6 16,-6 19,0 C 22,-6 27,-6 30,0 C 33,-6 38,-6 41,0 C 44,-6 49,-6 52,0 L 60,0" fill="none" stroke="#1E293B" stroke-width="2"/>
+    </g>
+
+    <!-- Símbolo: Diodo Zener/TVS Bidirecional Vertical -->
+    <g id="tvs_v">
+      <path d="M 0,0 L 0,15" class="comp-line"/>
+      <polygon points="-8,15 8,15 0,25" fill="none" stroke="#1E293B" stroke-width="2"/>
+      <polygon points="-8,35 8,35 0,25" fill="none" stroke="#1E293B" stroke-width="2"/>
+      <path d="M -8,15 L -11,15 L -11,18" class="comp-line"/>
+      <path d="M 8,35 L 11,35 L 11,32" class="comp-line"/>
+      <path d="M 0,35 L 0,50" class="comp-line"/>
+    </g>
+  </defs>
+
+  <!-- Aplicar Grade de Fundo -->
+  <rect width="100%" height="100%" fill="url(#cad-grid)" stroke="#CBD5E1" stroke-width="2"/>
+
+  <!-- ========================================== -->
+  <!-- LINHAS PRINCIPAIS DE ALIMENTAÇÃO (BARRAMENTOS) -->
+  <!-- ========================================== -->
+  <path d="M 50,100 L 1520,100" class="wire-pwr-48v"/> <!-- Barramento Principal VDC (48V) -->
+  <text x="60" y="90" class="text-pin" fill="#E11D48">DC_LINK (+12V a +48V)</text>
+
+  <path d="M 50,900 L 1520,900" class="wire-gnd"/> <!-- Barramento Principal GND -->
+  <text x="60" y="920" class="text-pin" fill="#1E3A8A">GND_POWER</text>
+
+  <!-- ========================================== -->
+  <!-- BLOCO 1: ENTRADA DE POTÊNCIA & FILTRAGEM (DC-LINK) -->
+  <!-- ========================================== -->
+  <g id="bloco_entrada" transform="translate(0,0)">
+    <!-- Conector de Entrada XT60 -->
+    <rect x="50" y="180" width="60" height="80" rx="4" fill="#F59E0B" stroke="#D97706" stroke-width="2"/>
+    <text x="80" y="210" class="text-title" fill="#FFF" text-anchor="middle">XT60</text>
+    <text x="80" y="240" class="text-subtitle" fill="#FFF" text-anchor="middle">Power IN</text>
+    <path d="M 110,200 L 150,200 L 150,100" class="wire-pwr-48v"/>
+    <circle cx="150" cy="100" r="4" class="junction-pwr"/>
+    <path d="M 110,240 L 130,240 L 130,900" class="wire-gnd"/>
+    <circle cx="130" cy="900" r="4" class="junction-gnd"/>
+
+    <!-- Fusível de Entrada FUSE1 (50A Automotive) -->
+    <g transform="translate(200, 100)">
+      <rect x="-20" y="-15" width="40" height="30" rx="3" fill="#FFE4E6" stroke="#E11D48" stroke-width="2"/>
+      <path d="M -30,0 L -20,0 C -10,-10 10,10 20,0 L 30,0" fill="none" stroke="#E11D48" stroke-width="2.5"/>
+      <text x="0" y="-22" class="text-comp-label" text-anchor="middle">FUSE1 50A</text>
+    </g>
+
+    <!-- Proteção TVS Bidirecional (SMBJ50CA - D_tvs_1/2 em paralelo para robustez) -->
+    <use href="#tvs_v" x="290" y="100"/>
+    <path d="M 290,150 L 290,900" class="wire-gnd"/>
+    <circle cx="290" cy="100" r="4" class="junction-pwr"/>
+    <circle cx="290" cy="900" r="4" class="junction-gnd"/>
+    <text x="310" y="130" class="text-comp-label">D_TVS1/2</text>
+    <text x="310" y="142" class="text-subtitle">SMBJ50CA</text>
+
+    <!-- Banco de Capacitores (C1 - 2x 470uF/450V Samyoung TLS) -->
+    <use href="#cap_pol_v" x="370" y="100"/>
+    <path d="M 370,135 L 370,900" class="wire-gnd"/>
+    <circle cx="370" cy="100" r="4" class="junction-pwr"/>
+    <circle cx="370" cy="900" r="4" class="junction-gnd"/>
+    <text x="390" y="125" class="text-comp-label">C1_A (470uF)</text>
+
+    <use href="#cap_pol_v" x="440" y="100"/>
+    <path d="M 440,135 L 440,900" class="wire-gnd"/>
+    <circle cx="440" cy="100" r="4" class="junction-pwr"/>
+    <circle cx="440" cy="900" r="4" class="junction-gnd"/>
+    <text x="460" y="125" class="text-comp-label">C1_B (470uF)</text>
+
+    <!-- Resistor de Descarga de Segurança (Rdischarge - 1M 5W) -->
+    <use href="#resistor_v" x="510" y="100"/>
+    <path d="M 510,157 L 510,900" class="wire-gnd"/>
+    <circle cx="510" cy="100" r="4" class="junction-pwr"/>
+    <circle cx="510" cy="900" r="4" class="junction-gnd"/>
+    <text x="530" y="130" class="text-comp-label">R_DISCH</text>
+    <text x="530" y="142" class="text-subtitle">1M 5W</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BLOCO 2: MICROCONTROLADOR (ESP32-WROOM-32E) -->
+  <!-- ========================================== -->
+  <g id="bloco_mcu" transform="translate(100, 500)">
+    <!-- Chassis do ESP32 -->
+    <rect x="0" y="0" width="280" height="340" class="ic-box" fill="#F8FAFC"/>
+    <rect x="0" y="0" width="280" height="40" fill="#E2E8F0" rx="8" />
+    <text x="140" y="25" class="text-title" text-anchor="middle">ESP32-WROOM-32E</text>
+    <text x="140" y="38" class="text-subtitle" text-anchor="middle" font-size="9px">240MHz Dual-Core WiFI + BLE</text>
+
+    <!-- Pinos Lado Esquerdo (Alimentação e Entradas) -->
+    <text x="10" y="80" class="text-pin">3.3V</text>
+    <text x="10" y="110" class="text-pin">GND</text>
+    <text x="10" y="140" class="text-pin">GPIO34 (VDC_SENSE)</text>
+    <text x="10" y="170" class="text-pin">GPIO35 (TEMP_MOT)</text>
+    <text x="10" y="200" class="text-pin">GPIO32 (TEMP_DRV)</text>
+    <text x="10" y="230" class="text-pin">GPIO33 (HALL_A)</text>
+    <text x="10" y="260" class="text-pin">GPIO25 (HALL_B)</text>
+    <text x="10" y="290" class="text-pin">GPIO26 (HALL_C)</text>
+    <text x="10" y="320" class="text-pin">EN / RST</text>
+
+    <!-- Pinos Lado Direito (Saídas PWM & Sensoriamento de Corrente) -->
+    <text x="270" y="80" class="text-pin" text-anchor="end">PWM_UH (GPIO12)</text>
+    <text x="270" y="110" class="text-pin" text-anchor="end">PWM_UL (GPIO13)</text>
+    <text x="270" y="140" class="text-pin" text-anchor="end">PWM_VH (GPIO14)</text>
+    <text x="270" y="170" class="text-pin" text-anchor="end">PWM_VL (GPIO27)</text>
+    <text x="270" y="200" class="text-pin" text-anchor="end">PWM_WH (GPIO15)</text>
+    <text x="270" y="230" class="text-pin" text-anchor="end">PWM_WL (GPIO2)</text>
+    <text x="270" y="260" class="text-pin" text-anchor="end">I_SENSE_U (GPIO4)</text>
+    <text x="270" y="290" class="text-pin" text-anchor="end">I_SENSE_V (GPIO5)</text>
+    <text x="270" y="320" class="text-pin" text-anchor="end">DRV_FAULT (GPIO19)</text>
+
+    <!-- Conexões de Alimentação do MCU -->
+    <path d="M -40,80 L 0,80" class="wire-pwr-3v3"/>
+    <path d="M -40,110 L 0,110" class="wire-gnd"/>
+
+    <!-- Capacitor de Decoupling Local (Cfilter_1 - 100uF Bulk + 100nF Bypass) -->
+    <use href="#cap_pol_v" x="-30" y="150"/>
+    <path d="M -30,150 L -30,80" class="wire-pwr-3v3"/>
+    <circle cx="-30" cy="80" r="3" fill="#10B981"/>
+    <path d="M -30,185 L -30,220 L -40,220" class="wire-gnd"/>
+    <circle cx="-40" cy="110" r="3" fill="#1E3A8A"/>
+    <path d="M -40,110 L -40,220" class="wire-gnd"/>
+    <text x="-75" y="175" class="text-comp-label">100uF</text>
+  </g>
+
+  <!-- Divisor de Tensão para Medição do Link DC (Resistor_divider_vdc - 100k 1% pair) -->
+  <g id="voltage_divider" transform="translate(60, 480)">
+    <use href="#resistor_v" x="0" y="0"/>
+    <text x="15" y="20" class="text-comp-label">100k 1%</text>
+    <use href="#resistor_v" x="0" y="60"/>
+    <text x="15" y="80" class="text-comp-label">100k 1%</text>
+    <path d="M 0,0 L 0,-380" class="wire-pwr-48v"/> <!-- Conecta no Barramento 48V -->
+    <circle cx="0" cy="-380" r="4" class="junction-pwr"/>
+    <path d="M 0,117 L 0,420" class="wire-gnd"/> <!-- Conecta no GND -->
+    <circle cx="0" cy="420" r="4" class="junction-gnd"/>
+    <!-- Nó de Saída Analógica -->
+    <circle cx="0" cy="57" r="3" class="junction"/>
+    <path d="M 0,57 L 40,57 L 40,160 L 100,160" class="wire-analog"/>
+    <text x="35" y="150" class="text-net">VDC_SENSE</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BLOCO 3: GATE DRIVER & BUCK (TI DRV8302) -->
+  <!-- ========================================== -->
+  <g id="bloco_driver" transform="translate(500, 180)">
+    <!-- Chassis do DRV8302 -->
+    <rect x="0" y="0" width="300" height="420" class="ic-box" fill="#F8FAFC"/>
+    <rect x="0" y="0" width="300" height="40" fill="#E2E8F0" rx="8"/>
+    <text x="150" y="25" class="text-title" text-anchor="middle">TI DRV8302</text>
+    <text x="150" y="38" class="text-subtitle" text-anchor="middle" font-size="9px">3-Phase Gate Driver &amp; Buck Integrado</text>
+
+    <!-- Pinos Lado Esquerdo (Controle & Alimentação) -->
+    <text x="10" y="80" class="text-pin">PVDD</text>
+    <text x="10" y="110" class="text-pin">GND</text>
+    <text x="10" y="140" class="text-pin">PWM_IH1 (UH)</text>
+    <text x="10" y="170" class="text-pin">PWM_IL1 (UL)</text>
+    <text x="10" y="200" class="text-pin">PWM_IH2 (VH)</text>
+    <text x="10" y="230" class="text-pin">PWM_IL2 (VL)</text>
+    <text x="10" y="260" class="text-pin">PWM_IH3 (WH)</text>
+    <text x="10" y="290" class="text-pin">PWM_IL3 (WL)</text>
+    <text x="10" y="320" class="text-pin">FAULT</text>
+    <text x="10" y="350" class="text-pin">OCTW</text>
+    <text x="10" y="380" class="text-pin">EN_GATE</text>
+
+    <!-- Pinos Lado Direito (Saídas das Fases & OpAmps de Corrente) -->
+    <text x="290" y="70" class="text-pin" text-anchor="end">GVDD (8V)</text>
+    <text x="290" y="100" class="text-pin" text-anchor="end">BST_A</text>
+    <text x="290" y="120" class="text-pin" text-anchor="end">GH_A</text>
+    <text x="290" y="140" class="text-pin" text-anchor="end">SH_A</text>
+    <text x="290" y="160" class="text-pin" text-anchor="end">GL_A</text>
+    
+    <text x="290" y="200" class="text-pin" text-anchor="end">BST_B</text>
+    <text x="290" y="220" class="text-pin" text-anchor="end">GH_B</text>
+    <text x="290" y="240" class="text-pin" text-anchor="end">SH_B</text>
+    <text x="290" y="260" class="text-pin" text-anchor="end">GL_B</text>
+
+    <text x="290" y="300" class="text-pin" text-anchor="end">BST_C</text>
+    <text x="290" y="320" class="text-pin" text-anchor="end">GH_C</text>
+    <text x="290" y="340" class="text-pin" text-anchor="end">SH_C</text>
+    <text x="290" y="360" class="text-pin" text-anchor="end">GL_C</text>
+
+    <text x="290" y="390" class="text-pin" text-anchor="end">SO1 (AMP U)</text>
+    <text x="290" y="410" class="text-pin" text-anchor="end">SO2 (AMP V)</text>
+
+    <!-- Conexão PVDD para barramento principal -->
+    <path d="M -20,80 L 0,80" class="wire-pwr-48v"/>
+    <path d="M -20,80 L -20,-80" class="wire-pwr-48v"/>
+    <circle cx="-20" cy="-80" r="4" class="junction-pwr"/>
+
+    <path d="M -10,110 L 0,110" class="wire-gnd"/>
+    <path d="M -10,110 L -10,720" class="wire-gnd"/>
+    <circle cx="-10" cy="720" r="4" class="junction-gnd"/>
+
+    <!-- Pinos Inferiores para Controle do Buck Integrado (TPS54160) -->
+    <path d="M 150,420 L 150,450" class="wire"/>
+    <text x="160" y="440" class="text-pin">PH (BUCK_SW)</text>
+  </g>
+
+  <!-- Circuito de Saída do Regulador Buck (TPS54160 Interno → gera +5.0V / 1.5A) -->
+  <g id="circuito_buck" transform="translate(650, 630)">
+    <!-- Indutor de Potência Lvcc (10uH) -->
+    <use href="#inductor_v" x="0" y="0"/>
+    <text x="20" y="25" class="text-comp-label">Lvcc (10uH)</text>
+
+    <!-- Capacitor de Saída do Buck (Capacitor_5V - 100uF 16V) -->
+    <use href="#cap_pol_v" x="60" y="40"/>
+    <text x="80" y="65" class="text-comp-label">C_5V (100uF)</text>
+    
+    <!-- GND do Buck -->
+    <path d="M 60,75 L 60,110 L 0,110" class="wire-gnd"/>
+    <circle cx="-160" cy="270" r="4" class="junction-gnd"/> <!-- Conexão ao barramento GND -->
+
+    <path d="M 0,60 L 0,80 L 120,80" class="wire-pwr-5v"/>
+    <circle cx="0" cy="80" r="3" class="junction"/>
+    <circle cx="60" cy="80" r="3" class="junction"/>
+    <text x="130" y="85" class="text-net" fill="#F59E0B">VCC_5V</text>
+
+    <!-- Regulador LDO Secundário de 3.3V para o MCU -->
+    <g transform="translate(180, 50)">
+      <rect x="0" y="0" width="70" height="50" rx="3" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
+      <text x="35" y="30" class="text-title" font-size="12px" text-anchor="middle" fill="#10B981">LDO 3.3V</text>
+      <!-- Conexões do LDO -->
+      <path d="M -60,30 L 0,30" class="wire-pwr-5v"/>
+      <circle cx="-60" cy="30" r="3" class="junction"/>
+      <path d="M 70,30 L 110,30" class="wire-pwr-3v3"/>
+      <text x="115" y="35" class="text-net" fill="#10B981">VCC_3V3</text>
+    </g>
+  </g>
+
+  <!-- Net Labels / Linhas Virtuais de Controle (MCU <-> Driver) para evitar Spaghetti wires -->
+  <g id="control_nets" transform="translate(400, 520)">
+    <rect x="-10" y="0" width="100" height="150" class="block-box" fill="#F8FAFC"/>
+    <text x="40" y="20" class="text-subtitle" text-anchor="middle">Controle PWM</text>
+    <text x="0" y="45" class="text-net" fill="#8B5CF6">UH → GPIO12</text>
+    <text x="0" y="60" class="text-net" fill="#8B5CF6">UL → GPIO13</text>
+    <text x="0" y="75" class="text-net" fill="#8B5CF6">VH → GPIO14</text>
+    <text x="0" y="90" class="text-net" fill="#8B5CF6">VL → GPIO27</text>
+    <text x="0" y="105" class="text-net" fill="#8B5CF6">WH → GPIO15</text>
+    <text x="0" y="120" class="text-net" fill="#8B5CF6">WL → GPIO2</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BLOCO 4: PONTE INVERSORA TRIFÁSICA (IRFB4110) -->
+  <!-- ========================================== -->
+  <!-- Cada braço da ponte contém 2 MOSFETs IRFB4110 (100V, 180A, Rds 4.5mOhm) -->
+  
+  <!-- ================= FASE U ================= -->
+  <g id="fase_u" transform="translate(900, 150)">
+    <rect x="-30" y="0" width="140" height="600" class="block-box" fill="#FFF"/>
+    <text x="40" y="-15" class="text-title" text-anchor="middle">PHASE U</text>
+
+    <!-- MOSFET High-Side Q1 -->
+    <use href="#n_mosfet" x="40" y="100"/>
+    <text x="65" y="70" class="text-comp-label">Q1 (HS)</text>
+    <text x="65" y="82" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,0 L 40,70" class="wire-pwr-48v"/> <!-- Conecta no Barramento 48V -->
+    <circle cx="40" cy="-50" r="4" class="junction-pwr"/>
+
+    <!-- Resistor de Gate High-Side (Rgate_u - 10R) -->
+    <use href="#resistor_h" x="-20" y="100"/>
+    <text x="10" y="90" class="text-comp-label">10R</text>
+    <text x="-50" y="104" class="text-net" fill="#8B5CF6">GH_U</text>
+
+    <!-- Bootstrap Capacitor Phase U (C_boot1 - 10uF 50V) -->
+    <use href="#cap_v" x="85" y="130"/>
+    <text x="95" y="152" class="text-comp-label" font-size="8px">C_boot1</text>
+    <path d="M 85,130 L 85,110 L 40,110" class="wire"/>
+    <circle cx="40" cy="110" r="3" class="junction"/>
+    <path d="M 85,167 L 85,200 L 40,200" class="wire"/>
+    <circle cx="40" cy="200" r="3" class="junction"/>
+
+    <!-- MOSFET Low-Side Q4 -->
+    <use href="#n_mosfet" x="40" y="320"/>
+    <text x="65" y="290" class="text-comp-label">Q4 (LS)</text>
+    <text x="65" y="302" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,200 L 40,290" class="wire"/> <!-- Conecta Ponto Médio (Fase) ao Low-Side -->
+
+    <!-- Resistor de Gate Low-Side (Rgate_ls_u - 10R) -->
+    <use href="#resistor_h" x="-20" y="320"/>
+    <text x="10" y="310" class="text-comp-label">10R</text>
+    <text x="-50" y="324" class="text-net" fill="#8B5CF6">GL_U</text>
+
+    <!-- Resistor Pull-down de Segurança de Gate (Rgate_ls_pd_u - 10k) -->
+    <use href="#resistor_v" x="15" y="350"/>
+    <text x="25" y="380" class="text-comp-label" font-size="8px">10k</text>
+    <path d="M 15,320 L 15,350" class="wire"/>
+    <circle cx="15" cy="320" r="3" class="junction"/>
+    <path d="M 15,407 L 15,440 L 40,440" class="wire"/>
+    <circle cx="40" cy="440" r="3" class="junction"/>
+
+    <!-- Shunt de Leitura de Corrente (R_shunt_u - 0.001R 2% 3W) -->
+    <use href="#resistor_v" x="40" y="440"/>
+    <text x="65" y="475" class="text-comp-label">R_shunt_u</text>
+    <text x="65" y="487" class="text-subtitle">0.001R 3W</text>
+    <path d="M 40,497 L 40,750" class="wire-gnd"/> <!-- Retorno para o barramento de GND -->
+    <circle cx="40" cy="750" r="4" class="junction-gnd"/>
+
+    <!-- Linhas de Sensoriamento Kelvin da Shunt (Conecta no Amp Operacional do Driver) -->
+    <circle cx="40" cy="430" r="3" class="junction" fill="#D97706"/>
+    <path d="M 40,430 L 10,430 L 10,470" class="wire-analog"/>
+    <text x="0" y="485" class="text-net" fill="#D97706">S_U_P</text>
+
+    <circle cx="40" cy="505" r="3" class="junction" fill="#D97706"/>
+    <path d="M 40,505 L 10,505 L 10,520" class="wire-analog"/>
+    <text x="0" y="535" class="text-net" fill="#D97706">S_U_N</text>
+
+    <!-- Saída do Ponto Médio da Fase U -->
+    <path d="M 40,200 L 150,200" class="wire"/>
+    <text x="140" y="190" class="text-net" fill="#E11D48">NODE_U</text>
+  </g>
+
+  <!-- ================= FASE V ================= -->
+  <g id="fase_v" transform="translate(1080, 150)">
+    <rect x="-30" y="0" width="140" height="600" class="block-box" fill="#FFF"/>
+    <text x="40" y="-15" class="text-title" text-anchor="middle">PHASE V</text>
+
+    <!-- MOSFET High-Side Q2 -->
+    <use href="#n_mosfet" x="40" y="100"/>
+    <text x="65" y="70" class="text-comp-label">Q2 (HS)</text>
+    <text x="65" y="82" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,0 L 40,70" class="wire-pwr-48v"/>
+    <circle cx="40" cy="-50" r="4" class="junction-pwr"/>
+
+    <!-- Resistor de Gate High-Side (Rgate_v - 10R) -->
+    <use href="#resistor_h" x="-20" y="100"/>
+    <text x="10" y="90" class="text-comp-label">10R</text>
+    <text x="-50" y="104" class="text-net" fill="#8B5CF6">GH_V</text>
+
+    <!-- Bootstrap Capacitor Phase V (C_boot2 - 10uF 50V) -->
+    <use href="#cap_v" x="85" y="130"/>
+    <path d="M 85,130 L 85,110 L 40,110" class="wire"/>
+    <circle cx="40" cy="110" r="3" class="junction"/>
+    <path d="M 85,167 L 85,200 L 40,200" class="wire"/>
+    <circle cx="40" cy="200" r="3" class="junction"/>
+
+    <!-- MOSFET Low-Side Q5 -->
+    <use href="#n_mosfet" x="40" y="320"/>
+    <text x="65" y="290" class="text-comp-label">Q5 (LS)</text>
+    <text x="65" y="302" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,200 L 40,290" class="wire"/>
+
+    <!-- Resistor de Gate Low-Side (Rgate_v - 10R) -->
+    <use href="#resistor_h" x="-20" y="320"/>
+    <text x="10" y="310" class="text-comp-label">10R</text>
+    <text x="-50" y="324" class="text-net" fill="#8B5CF6">GL_V</text>
+
+    <!-- Resistor Pull-down de Gate (10k) -->
+    <use href="#resistor_v" x="15" y="350"/>
+    <path d="M 15,320 L 15,350" class="wire"/>
+    <circle cx="15" cy="320" r="3" class="junction"/>
+    <path d="M 15,407 L 15,440 L 40,440" class="wire"/>
+    <circle cx="40" cy="440" r="3" class="junction"/>
+
+    <!-- Shunt de Leitura de Corrente (R_shunt_v - 0.001R) -->
+    <use href="#resistor_v" x="40" y="440"/>
+    <text x="65" y="475" class="text-comp-label">R_shunt_v</text>
+    <path d="M 40,497 L 40,750" class="wire-gnd"/>
+    <circle cx="40" cy="750" r="4" class="junction-gnd"/>
+
+    <!-- Linhas Kelvin Shunt V -->
+    <circle cx="40" cy="430" r="3" class="junction" fill="#D97706"/>
+    <path d="M 40,430 L 10,430 L 10,470" class="wire-analog"/>
+    <text x="0" y="485" class="text-net" fill="#D97706">S_V_P</text>
+
+    <circle cx="40" cy="505" r="3" class="junction" fill="#D97706"/>
+    <path d="M 40,505 L 10,505 L 10,520" class="wire-analog"/>
+    <text x="0" y="535" class="text-net" fill="#D97706">S_V_N</text>
+
+    <!-- Saída do Ponto Médio da Fase V -->
+    <path d="M 40,200 L 150,200" class="wire"/>
+    <text x="140" y="190" class="text-net" fill="#E11D48">NODE_V</text>
+  </g>
+
+  <!-- ================= FASE W ================= -->
+  <g id="fase_w" transform="translate(1260, 150)">
+    <rect x="-30" y="0" width="140" height="600" class="block-box" fill="#FFF"/>
+    <text x="40" y="-15" class="text-title" text-anchor="middle">PHASE W</text>
+
+    <!-- MOSFET High-Side Q3 -->
+    <use href="#n_mosfet" x="40" y="100"/>
+    <text x="65" y="70" class="text-comp-label">Q3 (HS)</text>
+    <text x="65" y="82" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,0 L 40,70" class="wire-pwr-48v"/>
+    <circle cx="40" cy="-50" r="4" class="junction-pwr"/>
+
+    <!-- Resistor de Gate High-Side (Rgate_w - 10R) -->
+    <use href="#resistor_h" x="-20" y="100"/>
+    <text x="10" y="90" class="text-comp-label">10R</text>
+    <text x="-50" y="104" class="text-net" fill="#8B5CF6">GH_W</text>
+
+    <!-- Bootstrap Capacitor Phase W (C_boot3 - 10uF 50V) -->
+    <use href="#cap_v" x="85" y="130"/>
+    <path d="M 85,130 L 85,110 L 40,110" class="wire"/>
+    <circle cx="40" cy="110" r="3" class="junction"/>
+    <path d="M 85,167 L 85,200 L 40,200" class="wire"/>
+    <circle cx="40" cy="200" r="3" class="junction"/>
+
+    <!-- MOSFET Low-Side Q6 -->
+    <use href="#n_mosfet" x="40" y="320"/>
+    <text x="65" y="290" class="text-comp-label">Q6 (LS)</text>
+    <text x="65" y="302" class="text-subtitle">IRFB4110</text>
+    <path d="M 40,200 L 40,290" class="wire"/>
+
+    <!-- Resistor de Gate Low-Side (Rgate_w - 10R) -->
+    <use href="#resistor_h" x="-20" y="320"/>
+    <text x="10" y="310" class="text-comp-label">10R</text>
+    <text x="-50" y="324" class="text-net" fill="#8B5CF6">GL_W</text>
+
+    <!-- Resistor Pull-down de Gate (10k) -->
+    <use href="#resistor_v" x="15" y="350"/>
+    <path d="M 15,320 L 15,350" class="wire"/>
+    <circle cx="15" cy="320" r="3" class="junction"/>
+    <path d="M 15,407 L 15,440 L 40,440" class="wire"/>
+    <circle cx="40" cy="440" r="3" class="junction"/>
+
+    <!-- Shunt de Leitura de Corrente (R_shunt_w - 0.001R) -->
+    <use href="#resistor_v" x="40" y="440"/>
+    <text x="65" y="475" class="text-comp-label">R_shunt_w</text>
+    <path d="M 40,497 L 40,750" class="wire-gnd"/>
+    <circle cx="40" cy="750" r="4" class="junction-gnd"/>
+
+    <!-- Saída do Ponto Médio da Fase W -->
+    <path d="M 40,200 L 150,200" class="wire"/>
+    <text x="140" y="190" class="text-net" fill="#E11D48">NODE_W</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- ESTÁGIO DE FILTRAGEM EMI & SAÍDA DE FASE -->
+  <!-- ========================================== -->
+  <!-- Bloco contendo amortecimento LC (Ferrite Bead em paralelo com resistor Rdamp para conter ringing de alta frequência) -->
+  <g id="filtros_saida" transform="translate(1420, 250)">
+    <!-- Filtro Fase U -->
+    <path d="M 0,100 L 10,100 M 10,80 L 25,80" class="wire"/>
+    <use href="#inductor_h" x="25" y="80"/>
+    <text x="55" y="70" class="text-comp-label" text-anchor="middle">Lfilter_u (1uH)</text>
+    <path d="M 85,80 L 100,80 L 100,100 L 110,100" class="wire"/>
+
+    <path d="M 10,100 L 10,120 L 25,120" class="wire"/>
+    <use href="#resistor_h" x="25" y="120"/>
+    <text x="55" y="145" class="text-comp-label" text-anchor="middle">Rdamp_u (100R)</text>
+    <path d="M 82,120 L 100,120" class="wire"/>
+    
+    <circle cx="10" cy="100" r="3" class="junction"/>
+    <circle cx="100" cy="100" r="3" class="junction"/>
+    
+    <!-- Parafuso de Conexão M4 - Saída U -->
+    <circle cx="130" cy="100" r="8" fill="#D97706" stroke="#B45309" stroke-width="2"/>
+    <text x="130" y="103" class="text-title" font-size="11px" text-anchor="middle" fill="#FFF">U</text>
+    <text x="150" y="120" class="text-title">FASE_U (M4)</text>
+
+    <!-- Filtro Fase V -->
+    <path d="M 0,200 L 10,200 M 10,180 L 25,180" class="wire"/>
+    <use href="#inductor_h" x="25" y="180"/>
+    <text x="55" y="170" class="text-comp-label" text-anchor="middle">Lfilter_v (1uH)</text>
+    <path d="M 85,180 L 100,180 L 100,200 L 110,200" class="wire"/>
+
+    <path d="M 10,200 L 10,220 L 25,220" class="wire"/>
+    <use href="#resistor_h" x="25" y="220"/>
+    <text x="55" y="245" class="text-comp-label" text-anchor="middle">Rdamp_v (100R)</text>
+    <path d="M 82,220 L 100,220" class="wire"/>
+    
+    <circle cx="10" cy="200" r="3" class="junction"/>
+    <circle cx="100" cy="200" r="3" class="junction"/>
+    
+    <!-- Parafuso de Conexão M4 - Saída V -->
+    <circle cx="130" cy="200" r="8" fill="#D97706" stroke="#B45309" stroke-width="2"/>
+    <text x="130" y="203" class="text-title" font-size="11px" text-anchor="middle" fill="#FFF">V</text>
+    <text x="150" y="220" class="text-title">FASE_V (M4)</text>
+
+    <!-- Filtro Fase W -->
+    <path d="M 0,300 L 10,300 M 10,280 L 25,280" class="wire"/>
+    <use href="#inductor_h" x="25" y="280"/>
+    <text x="55" y="270" class="text-comp-label" text-anchor="middle">Lfilter_w (1uH)</text>
+    <path d="M 85,280 L 100,280 L 100,300 L 110,300" class="wire"/>
+
+    <path d="M 10,300 L 10,320 L 25,320" class="wire"/>
+    <use href="#resistor_h" x="25" y="320"/>
+    <text x="55" y="345" class="text-comp-label" text-anchor="middle">Rdamp_w (100R)</text>
+    <path d="M 82,320 L 100,320" class="wire"/>
+    
+    <circle cx="10" cy="300" r="3" class="junction"/>
+    <circle cx="100" cy="300" r="3" class="junction"/>
+    
+    <!-- Parafuso de Conexão M4 - Saída W -->
+    <circle cx="130" cy="300" r="8" fill="#D97706" stroke="#B45309" stroke-width="2"/>
+    <text x="130" y="303" class="text-title" font-size="11px" text-anchor="middle" fill="#FFF">W</text>
+    <text x="150" y="320" class="text-title">FASE_W (M4)</text>
+
+    <!-- Linhas físicas vindas de cada braço de inversor -->
+    <path d="M -370,200 L -330,200 L -330,100 L 0,100" class="wire" stroke-width="2"/> <!-- NODE_U -->
+    <path d="M -190,200 L -150,200 L -150,200 L 0,200" class="wire" stroke-width="2"/> <!-- NODE_V -->
+    <path d="M -10,200 L 0,300" class="wire" stroke-width="2"/> <!-- NODE_W -->
+  </g>
+
+  <!-- ========================================== -->
+  <!-- BLOCO 5: CONECTORES DE SENSORES & FEEDBACK -->
+  <!-- ========================================== -->
+  <!-- Mapeamento físico dos sensores Hall de posição do rotor (com filtros capacitivos RC de debounce) -->
+  <g id="bloco_feedback" transform="translate(1080, 780)">
+    <rect x="-30" y="0" width="370" height="150" class="block-box" fill="#F8FAFC"/>
+    <text x="155" y="25" class="text-title" text-anchor="middle">SENSING DE POSIÇÃO (HALL CONNECTORS)</text>
+
+    <!-- Bloco Teórico do Sensor A3144 de cada Fase -->
+    <rect x="-10" y="50" width="100" height="70" rx="3" fill="#FFF" stroke="#64748B"/>
+    <text x="40" y="70" class="text-comp-label" text-anchor="middle">HALL_A (A3144)</text>
+    <text x="40" y="85" class="text-subtitle" text-anchor="middle">Debounce Cap</text>
+    <text x="40" y="100" class="text-pin" text-anchor="middle" fill="#D97706">10nF 16V</text>
+
+    <rect x="105" y="50" width="100" height="70" rx="3" fill="#FFF" stroke="#64748B"/>
+    <text x="155" y="70" class="text-comp-label" text-anchor="middle">HALL_B (A3144)</text>
+    <text x="155" y="85" class="text-subtitle" text-anchor="middle">Debounce Cap</text>
+    <text x="155" y="100" class="text-pin" text-anchor="middle" fill="#D97706">10nF 16V</text>
+
+    <rect x="220" y="50" width="100" height="70" rx="3" fill="#FFF" stroke="#64748B"/>
+    <text x="270" y="70" class="text-comp-label" text-anchor="middle">HALL_C (A3144)</text>
+    <text x="270" y="85" class="text-subtitle" text-anchor="middle">Debounce Cap</text>
+    <text x="270" y="100" class="text-pin" text-anchor="middle" fill="#D97706">10nF 16V</text>
+  </g>
+
+  <!-- Sensoriamento Térmico (Termistores NTC 10k 1%) -->
+  <g id="bloco_temp" transform="translate(750, 780)">
+    <rect x="0" y="0" width="280" height="150" class="block-box" fill="#F8FAFC"/>
+    <text x="140" y="25" class="text-title" text-anchor="middle">SENSING DE TEMPERATURA</text>
+
+    <circle cx="40" cy="70" r="8" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+    <text x="40" y="74" class="text-title" font-size="9px" text-anchor="middle" fill="#FFF">NTC</text>
+    <text x="60" y="65" class="text-comp-label">NTC1: Temp. Motor</text>
+    <text x="60" y="80" class="text-subtitle">10k B=3470 (1% ADC)</text>
+
+    <circle cx="40" cy="110" r="8" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+    <text x="40" y="114" class="text-title" font-size="9px" text-anchor="middle" fill="#FFF">NTC</text>
+    <text x="60" y="105" class="text-comp-label">NTC2: Temp. Driver Heatsink</text>
+    <text x="60" y="120" class="text-subtitle">10k (Monitoramento térmico)</text>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- LEGENDA E INFORMAÇÕES DE ENGENHARIA -->
+  <!-- ========================================== -->
+  <g id="info_block" transform="translate(1180, 20)">
+    <rect x="0" y="0" width="370" height="110" rx="6" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+    <text x="20" y="30" class="text-title" fill="#F8FAFC">UNIVERSAL FOC MOTOR CONTROLLER</text>
+    <text x="20" y="50" class="text-subtitle" fill="#94A3B8">Fase 1: Prototipagem em Bancada (12V-48V / 30A Max)</text>
+    <text x="20" y="70" class="text-subtitle" fill="#E2E8F0" font-weight="bold">MCU: ESP32-WROOM-32E | DRIVER: TI DRV8302</text>
+    <text x="20" y="90" class="text-subtitle" fill="#38BDF8">Data: 15-08-2026 | Versão: 1.1 (Revisado)</text>
+  </g>
+</svg>
+                </div>
+            </div>
+
     </div>
 
     <script>
