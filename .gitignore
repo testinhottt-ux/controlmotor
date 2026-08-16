@@ -25,7 +25,11 @@ schematic_incompleto.kicad_sch.bak
 __pycache__/
 *.pyc
 
-# Secrets - NEVER commit
+# Secrets & Governance - NEVER commit
 .env
 *token*
 *credencial*
+ag3.md
+*ag3*
+HARNESS.md
+harness.md
