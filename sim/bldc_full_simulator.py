@@ -66,6 +66,13 @@ class SimConfig:
     battery_efficiency: float = 95.0
     battery_soc_init: float = 0.85
 
+    # Industrial Protections & Dead-Time
+    brake_chopper_enabled: bool = True
+    brake_chopper_v_on: float = 54.0       # Ativação do Chopper de Freio (V)
+    brake_chopper_v_off: float = 51.0      # Desativação do Chopper de Freio (Histerese 3V)
+    dead_time_ns: float = 500.0            # 500ns Dead-Time por hardware
+    galvanic_isolation_active: bool = True # Optoisoladores Hall + CAN ISO1050
+
     # Optional throttle profile over time [(time_s, throttle_percent), ...].
     # When set, throttle_percent is interpolated across time (models user
     # releasing the pedal -> deceleration -> regenerative braking).
@@ -100,6 +107,8 @@ class SimState:
     battery_voltage: float = 48.0
     regen_power: float = 0.0
     motor_brake: bool = True
+    brake_chopper_active: bool = False
+    dead_time_loss_v: float = 0.0
 
 class BLDCMotor:
     """Full BLDC motor model with realistic braking/friction"""
@@ -476,6 +485,7 @@ class BLDCSimulator:
         self.regen_energy_wh = 0.0  # Accumulated regen energy (Wh)
         self.prev_omega = 0.0        # Previous rotor speed for decel detection
         self.last_target_rpm = config.rpm_target  # Actual target chased this run
+        self.brake_chopper_active = False # Estado do Chopper de Freio
     
     def _interpolate_profile(self, profile: List[Tuple[float, float]], t: float) -> float:
         """Linearly interpolate throttle percent at time t from a profile list"""
@@ -529,17 +539,17 @@ class BLDCSimulator:
             
             # 3. FOC control law (or relay during auto-learn)
             if autolearn_active:
-                # During auto-learning: use relay command directly
-                # relay_cmd is in [-relay_high, +relay_high] range
-                # Scale to voltage (20V/relay unit)
                 v_alpha = relay_cmd * 20.0
                 v_beta = 0.0
             else:
-                # Normal mode: use FOC controller
                 v_alpha, v_beta = self.controller.compute(rpm_target, self.motor.get_rpm())
             
+            # 3.5 Modelagem de Dead-Time (500ns em PWM de 20kHz)
+            # Perda média de tensão devido ao tempo morto: V_loss = V_dc * (t_dead / T_pwm)
+            t_pwm_s = 1.0 / 20000.0  # 50 µs
+            dead_time_loss_v = self.battery.get_voltage() * ((self.config.dead_time_ns * 1e-9) / t_pwm_s)
+            
             # 4. Motor simulation
-            # Motor brake OFF => no active braking torque (freewheel coast)
             effective_load = self.config.load_torque if self.config.motor_brake else 0.0
             self.motor.step(v_alpha, v_beta, effective_load, self.config.ambient_temp_c)
             
@@ -555,26 +565,36 @@ class BLDCSimulator:
             v_v = 200 * math.cos(self.motor.theta - 2*math.pi/3)
             v_w = 200 * math.cos(self.motor.theta - 4*math.pi/3)
             
-            # 7.5 Regenerative braking: quando o freio motor está ATIVO e o motor
-            # está desacelerando, a energia cinética removida do rotor volta para
-            # a bateria, aumentando o SOC.
+            # 7.5 Regenerative braking + Chopper de Freio Dinâmico com Histerese
             rpm_actual = self.motor.get_rpm()
             omega_actual = rpm_actual * 2 * math.pi / 60.0
             regen_power = 0.0
+            v_batt = self.battery.get_voltage()
+            
             if self.config.motor_brake and rpm_actual > 50:
-                # Taxa de desaceleração (rad/s²) => potência mecânica removida
                 decel = (self.prev_omega - omega_actual) / self.dt
-                if decel > 1.0:  # Decelerating (min ~0.6 RPM/s per step)
+                if decel > 1.0:
                     mech_power = self.motor.J * omega_actual * decel
-                    # Effective load + friction brake contribute to decel too;
-                    # regen capped at a realistic fraction of mechanical power
-                    regen_power = min(mech_power * 0.7, self.battery.get_voltage() * 150)
-                    i_regen = regen_power / max(self.battery.get_voltage(), 1)
+                    regen_power = min(mech_power * 0.7, v_batt * 150)
+                    i_regen = regen_power / max(v_batt, 1)
                     self.battery.charge(i_regen)
                     self.regen_energy_wh += regen_power * self.dt / 3600.0
             elif not self.config.motor_brake:
-                # Freio motor OFF: motor em roda livre, sem regeneração
                 self.battery.current_out = 0.0
+            
+            # Controle com Histerese do Chopper de Freio (54V liga, 51V desliga)
+            if self.config.brake_chopper_enabled:
+                if v_batt >= self.config.brake_chopper_v_on:
+                    self.brake_chopper_active = True
+                elif v_batt <= self.config.brake_chopper_v_off:
+                    self.brake_chopper_active = False
+                
+                # Se o chopper está ativo, desvia corrente para R_brake (4.7Ω)
+                if self.brake_chopper_active:
+                    r_brake = 4.7
+                    i_brake = v_batt / r_brake  # Corrente de queima no resistor de freio
+                    self.battery.discharge(i_brake)
+            
             self.prev_omega = omega_actual
             
             # 8. Record state
@@ -604,7 +624,9 @@ class BLDCSimulator:
                 soc=self.battery.get_soc(),
                 battery_voltage=self.battery.get_voltage(),
                 regen_power=regen_power,
-                motor_brake=self.config.motor_brake
+                motor_brake=self.config.motor_brake,
+                brake_chopper_active=self.brake_chopper_active,
+                dead_time_loss_v=dead_time_loss_v
             )
             self.states.append(state)
             self.time += self.dt

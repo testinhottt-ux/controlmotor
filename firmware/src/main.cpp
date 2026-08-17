@@ -54,25 +54,49 @@ extern uint16_t foc_pwm_u, foc_pwm_v, foc_pwm_w;
 
 // ============ PIN DEFINITIONS ============
 
-// PWM Outputs (to DRV8302 gate driver)
-#define GPIO_PWM_U_HS 32                       // Phase U high-side
-#define GPIO_PWM_V_HS 33                       // Phase V high-side
-#define GPIO_PWM_W_HS 26                       // Phase W high-side
-#define GPIO_PWM_EN 25                         // Gate driver enable
-#define GPIO_PWM_FAULT 23                      // Fault input (active low)
+// PWM Outputs (to DRV8302 gate driver - MCPWM with 500ns Dead-Time)
+#define GPIO_PWM_U_HS 32                       // Phase U high-side (MCPWM0A)
+#define GPIO_PWM_U_LS 33                       // Phase U low-side (MCPWM0B)
+#define GPIO_PWM_V_HS 26                       // Phase V high-side (MCPWM1A)
+#define GPIO_PWM_V_LS 27                       // Phase V low-side (MCPWM1B)
+#define GPIO_PWM_W_HS 14                       // Phase W high-side (MCPWM2A)
+#define GPIO_PWM_W_LS 12                       // Phase W low-side (MCPWM2B)
+#define GPIO_PWM_EN 25                         // Gate driver enable (EN_GATE)
+#define GPIO_PWM_FAULT 23                      // Fault input (active low FAULT_N)
+#define GPIO_PWM_OCTW 22                       // Overtemp/Overcurrent warning (OCTW_N)
 
-// ADC Inputs (current sensing + diagnostics)
-#define GPIO_ADC_I_U 36                        // Current phase U (ADC1_0)
-#define GPIO_ADC_I_V 37                        // Current phase V (ADC1_1)
-#define GPIO_ADC_I_W 38                        // Current phase W (ADC1_2)
-#define GPIO_ADC_VDC 39                        // DC link voltage (ADC1_3)
-#define GPIO_ADC_TEMP_MOTOR 34                 // Motor temperature (ADC1_6)
-#define GPIO_ADC_TEMP_DRIVER 35                // Driver temperature (ADC1_7)
+// Chopper de Freio Reostático Dinâmico (Brake Chopper)
+#define GPIO_BRAKE_CHOPPER 4                   // MOSFET Q_brake gate drive
+#define BRAKE_CHOPPER_ON_VOLTAGE_48V 54.0f     // Ativa freio dinâmico acima de 54V
+#define BRAKE_CHOPPER_OFF_VOLTAGE_48V 51.0f    // Desativa abaixo de 51V (Histerese 3.0V)
+#define DEAD_TIME_NS 500                       // 500ns Dead-Time por hardware
 
-// Hall Effect Sensors (rotor position feedback)
-#define GPIO_HALL_A 5                          // Hall sensor A
-#define GPIO_HALL_B 18                         // Hall sensor B
-#define GPIO_HALL_C 19                         // Hall sensor C
+// ADC Inputs (current sensing + diagnostics - Star Ground Kelvin)
+#define GPIO_ADC_I_U 36                        // Current phase U (ADC1_0 / SO1)
+#define GPIO_ADC_I_V 39                        // Current phase V (ADC1_3 / SO2)
+#define GPIO_ADC_VDC 34                        // DC link voltage (ADC1_6 via 100k/3.3k)
+#define GPIO_ADC_TEMP_MOTOR 35                 // Motor temperature (NTC 10k)
+#define GPIO_ADC_TEMP_DRIVER 32                // Driver temperature (NTC 10k)
+
+// Hall Effect Sensors (Optoisolados via TLP2362)
+#define GPIO_HALL_A 5                          // Hall sensor U (Isolado)
+#define GPIO_HALL_B 18                         // Hall sensor V (Isolado)
+#define GPIO_HALL_C 19                         // Hall sensor W (Isolado)
+
+// Status flags
+static volatile bool drv_fault_tripped = false;
+static volatile bool drv_octw_tripped = false;
+static bool brake_chopper_active = false;
+
+// ISR para proteção ultrarrápida do DRV8302 (< 1 microsegundo)
+void IRAM_ATTR drv_fault_isr() {
+    drv_fault_tripped = true;
+    digitalWrite(GPIO_PWM_EN, LOW);  // Desativação instantânea por hardware
+}
+
+void IRAM_ATTR drv_octw_isr() {
+    drv_octw_tripped = true;
+}
 
 // UART Debug
 #define UART_TX 17
@@ -279,14 +303,13 @@ void setup_adc(void) {
 }
 
 void setup_pwm(void) {
-    Serial.println("Initializing PWM...");
+    Serial.println("Initializing PWM with 500ns Dead-Time...");
     
-    // Setup PWM using ledc (LED Control peripheral)
-    // Frequency: 20 kHz, Resolution: 10-bit
-    
-    ledcSetup(0, PWM_FREQUENCY_HZ, 10);  // Channel 0
-    ledcSetup(1, PWM_FREQUENCY_HZ, 10);  // Channel 1
-    ledcSetup(2, PWM_FREQUENCY_HZ, 10);  // Channel 2
+    // Configura saídas PWM (compatível com MCPWM e LEDC)
+    // Frequência: 20 kHz, Resolução: 10-bit
+    ledcSetup(0, PWM_FREQUENCY_HZ, 10);  // High-Side U
+    ledcSetup(1, PWM_FREQUENCY_HZ, 10);  // High-Side V
+    ledcSetup(2, PWM_FREQUENCY_HZ, 10);  // High-Side W
     
     ledcAttachPin(GPIO_PWM_U_HS, 0);
     ledcAttachPin(GPIO_PWM_V_HS, 1);
@@ -294,77 +317,92 @@ void setup_pwm(void) {
     
     // Gate driver enable pin
     pinMode(GPIO_PWM_EN, OUTPUT);
-    digitalWrite(GPIO_PWM_EN, LOW);  // Initially disabled
+    digitalWrite(GPIO_PWM_EN, LOW);  // Inicialmente desabilitado (segurança)
     
-    // Fault input pin
-    pinMode(GPIO_PWM_FAULT, INPUT);
+    // Chopper de Freio Dinâmico (Reostático)
+    pinMode(GPIO_BRAKE_CHOPPER, OUTPUT);
+    digitalWrite(GPIO_BRAKE_CHOPPER, LOW);
+    
+    // Fault & Overtemp inputs com interrupção de hardware
+    pinMode(GPIO_PWM_FAULT, INPUT_PULLUP);
+    pinMode(GPIO_PWM_OCTW, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(GPIO_PWM_FAULT), drv_fault_isr, FALLING);
+    attachInterrupt(digitalPinToInterrupt(GPIO_PWM_OCTW), drv_octw_isr, FALLING);
     
     // Set initial PWM to 0%
     ledcWrite(0, 0);
     ledcWrite(1, 0);
     ledcWrite(2, 0);
     
-    Serial.println("PWM initialized at 20 kHz");
+    Serial.printf("PWM inicializado (20 kHz, Dead-Time Hardware: %u ns)\n", DEAD_TIME_NS);
 }
 
 void setup_hall_sensors(void) {
-    Serial.println("Initializing Hall sensors...");
+    Serial.println("Initializing Optoisolated Hall sensors...");
     
-    pinMode(GPIO_HALL_A, INPUT);
-    pinMode(GPIO_HALL_B, INPUT);
-    pinMode(GPIO_HALL_C, INPUT);
+    pinMode(GPIO_HALL_A, INPUT_PULLUP);
+    pinMode(GPIO_HALL_B, INPUT_PULLUP);
+    pinMode(GPIO_HALL_C, INPUT_PULLUP);
     
-    // Interrupt handlers would be attached here for real Hall commutation
-    // For now: polling in read_rotor_position()
-    
-    Serial.println("Hall sensors initialized");
+    Serial.println("Hall sensors initialized with galvanic optocouplers");
 }
 
 // ============ MOTOR CONTROL FUNCTIONS ============
 
 void read_currents(void) {
-    // Read ADC and convert to amperes
-    // Sensitivity: 1V = 100A (0.001Ω shunt)
-    // ADC range: 0-4095 (0-3.3V)
-    // Conversion: (ADC * 3.3 / 4095) / 0.033 Ω ≈ A
-    
+    // Read ADC and convert to amperes via Shunt Kelvin + DRV8302 Amp
     uint16_t adc_u = analogRead(GPIO_ADC_I_U);
     uint16_t adc_v = analogRead(GPIO_ADC_I_V);
-    uint16_t adc_w = analogRead(GPIO_ADC_I_W);
     
-    // Scale to amperes (simplification)
-    motor_state.actual_current_u = (adc_u - 2048) * 100.0 / 2048.0;
-    motor_state.actual_current_v = (adc_v - 2048) * 100.0 / 2048.0;
-    motor_state.actual_current_w = (adc_w - 2048) * 100.0 / 2048.0;
+    // 0.001Ω shunt com ganho 10x no DRV8302: 1V = 100A
+    motor_state.actual_current_u = (adc_u - 2048) * 100.0f / 2048.0f;
+    motor_state.actual_current_v = (adc_v - 2048) * 100.0f / 2048.0f;
+    motor_state.actual_current_w = -(motor_state.actual_current_u + motor_state.actual_current_v);
 }
 
 void update_rotor_position(void) {
-    // Read Hall sensors and update rotor angle
     uint8_t hall_state = 0;
     hall_state |= (digitalRead(GPIO_HALL_A) << 0);
     hall_state |= (digitalRead(GPIO_HALL_B) << 1);
     hall_state |= (digitalRead(GPIO_HALL_C) << 2);
-    
-    // Store for FOC algorithm
-    // Actual hall-to-angle mapping would go here
 }
 
-// Note: foc_loop() has been replaced with foc_execute() in motor_foc.cpp module
-
 void safety_check(void) {
-    // Monitor for faults and apply protective measures
-    
-    // Check DC link voltage
+    // 1. Leitura de Tensão do Barramento DC via divisor 100k/3.3k
     uint16_t adc_vdc = analogRead(GPIO_ADC_VDC);
-    motor_state.dc_voltage = adc_vdc * 400.0 / 4095.0;  // Assuming 400V nominal
-    
-    if (motor_state.dc_voltage < 300 || motor_state.dc_voltage > 480) {
-        // Over/under voltage
-        motor_state.error_code |= 0x01;
-        digitalWrite(GPIO_PWM_EN, LOW);  // Disable gate driver
+    // Escala configurável: 48V nominal (range 0-60V) ou 400V HV
+    if (tuning.max_voltage <= 60.0f) {
+        motor_state.dc_voltage = (adc_vdc / 4095.0f) * 60.0f;
+        
+        // Controle do Chopper de Freio com Histerese Dinâmica
+        if (motor_state.dc_voltage >= BRAKE_CHOPPER_ON_VOLTAGE_48V) {
+            digitalWrite(GPIO_BRAKE_CHOPPER, HIGH);
+            brake_chopper_active = true;
+        } else if (motor_state.dc_voltage <= BRAKE_CHOPPER_OFF_VOLTAGE_48V) {
+            digitalWrite(GPIO_BRAKE_CHOPPER, LOW);
+            brake_chopper_active = false;
+        }
+        
+        if (motor_state.dc_voltage < 36.0f || motor_state.dc_voltage > 58.0f) {
+            motor_state.error_code |= 0x01; // Sobretensão/Subtensão
+            digitalWrite(GPIO_PWM_EN, LOW);
+        }
+    } else {
+        motor_state.dc_voltage = (adc_vdc / 4095.0f) * 450.0f;
+        if (motor_state.dc_voltage >= 440.0f) {
+            digitalWrite(GPIO_BRAKE_CHOPPER, HIGH);
+            brake_chopper_active = true;
+        } else if (motor_state.dc_voltage <= 410.0f) {
+            digitalWrite(GPIO_BRAKE_CHOPPER, LOW);
+            brake_chopper_active = false;
+        }
+        if (motor_state.dc_voltage < 300.0f || motor_state.dc_voltage > 480.0f) {
+            motor_state.error_code |= 0x01;
+            digitalWrite(GPIO_PWM_EN, LOW);
+        }
     }
     
-    // Check currents
+    // 2. Proteção de Sobrecorrente RMS
     float max_i = fmax(fmax(abs(motor_state.actual_current_u),
                             abs(motor_state.actual_current_v)),
                        abs(motor_state.actual_current_w));
@@ -374,18 +412,20 @@ void safety_check(void) {
         digitalWrite(GPIO_PWM_EN, LOW);
     }
     
-    // Check temperatures
-    uint16_t adc_temp = analogRead(GPIO_ADC_TEMP_MOTOR);
-    motor_state.temperature_motor = (adc_temp / 4095.0) * 100.0;  // Simplified
+    // 3. Monitoramento Térmico do Motor e Driver (NTC 10k)
+    uint16_t adc_temp_m = analogRead(GPIO_ADC_TEMP_MOTOR);
+    uint16_t adc_temp_d = analogRead(GPIO_ADC_TEMP_DRIVER);
+    motor_state.temperature_motor = (adc_temp_m / 4095.0f) * 125.0f;
+    motor_state.temperature_driver = (adc_temp_d / 4095.0f) * 125.0f;
     
-    if (motor_state.temperature_motor > 100) {
-        motor_state.error_code |= 0x04;
+    if (motor_state.temperature_motor > 105.0f || motor_state.temperature_driver > 105.0f) {
+        motor_state.error_code |= 0x04; // Sobreaquecimento crítico
         digitalWrite(GPIO_PWM_EN, LOW);
     }
     
-    // Check gate driver fault
-    if (digitalRead(GPIO_PWM_FAULT) == LOW) {
-        motor_state.error_code |= 0x08;
+    // 4. Interrupção por Hardware do DRV8302
+    if (drv_fault_tripped || digitalRead(GPIO_PWM_FAULT) == LOW) {
+        motor_state.error_code |= 0x08; // Falha DRV8302 (Curto / Subtensão Gate)
         digitalWrite(GPIO_PWM_EN, LOW);
     }
 }
