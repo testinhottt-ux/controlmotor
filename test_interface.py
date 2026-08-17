@@ -232,8 +232,47 @@ def test_modulos_io():
         return False
 
 
+def start_background_server_if_needed():
+    """Ensure simulation server is running on localhost:8000"""
+    import socket
+    import sys
+    import os
+    import threading
+    
+    # Check if port 8000 is open
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(0.5)
+    result = sock.connect_ex(('127.0.0.1', 8000))
+    sock.close()
+    
+    if result == 0:
+        print("ℹ️ Servidor de simulação já está rodando em http://127.0.0.1:8000")
+        return None
+    
+    print("🚀 Iniciando servidor de simulação em background (127.0.0.1:8000)...")
+    sim_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sim')
+    if sim_dir not in sys.path:
+        sys.path.insert(0, sim_dir)
+        
+    try:
+        from http.server import HTTPServer
+        from server import MotorControllerHandler
+        
+        httpd = HTTPServer(('127.0.0.1', 8000), MotorControllerHandler)
+        server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        server_thread.start()
+        time.sleep(0.5)
+        print("✅ Servidor iniciado com sucesso!")
+        return httpd
+    except Exception as e:
+        print(f"⚠️ Não foi possível iniciar servidor automático: {e}")
+        return None
+
+
 def main():
     """Run all tests"""
+    
+    server = start_background_server_if_needed()
     
     tests = [
         ("API Simulação + JSON Correto", test_api_simulation),
@@ -283,3 +322,4 @@ def main():
 if __name__ == '__main__':
     import sys
     sys.exit(main())
+

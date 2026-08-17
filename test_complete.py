@@ -7,10 +7,33 @@ Tests: Multiple Motors, Batteries, Auto-Learning (improved)
 import requests
 import json
 import time
+import socket
+import threading
+from sim.server import MotorControllerHandler
+from http.server import HTTPServer
 
-API_URL = 'http://localhost:8000/api/simulate'
-MOTORS_URL = 'http://localhost:8000/api/motors'
-BATTERIES_URL = 'http://localhost:8000/api/batteries'
+def is_server_running(host='127.0.0.1', port=8000):
+    try:
+        s = socket.create_connection((host, port), timeout=1)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+def start_background_server_if_needed():
+    if not is_server_running():
+        print("🚀 Iniciando servidor de simulação em background (127.0.0.1:8000)...")
+        server = HTTPServer(('127.0.0.1', 8000), MotorControllerHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        time.sleep(0.5)
+        print("✅ Servidor iniciado com sucesso!\n")
+
+start_background_server_if_needed()
+
+API_URL = 'http://127.0.0.1:8000/api/simulate'
+MOTORS_URL = 'http://127.0.0.1:8000/api/motors'
+BATTERIES_URL = 'http://127.0.0.1:8000/api/batteries'
 
 print("\n" + "="*70)
 print("🧪 TESTE COMPLETO: MotorControl v2.0 (Multi-Motor + Multi-Battery)")

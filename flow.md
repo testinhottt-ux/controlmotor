@@ -303,3 +303,17 @@ bom.csv
 
 ### Dependências
 - `esquemaprofisionalsvg` → `controlmotor-dual.html` (embed inline; runtime sem dependência externa).
+
+---
+
+## Arquivo: ANALISE_VIDEO_LETRAJOTA_CONTROLADORA_400V_UNIVERSAL.md (criado 2026-08-16)
+
+### Conteúdo
+- Análise aprofundada do vídeo *O UNO ELÉTRICO DE 200 CAVALOS SUPER PODEROSO CASEIRO* (LetraJota / YouTube `qaykfUKs_mc`).
+- Especificação de engenharia para inversor trifásico automotivo universal 400V (300V-450V DC / 150kW-200kW).
+- Arquitetura de potência SiC/IGBT 650V-1200V, Gate Drivers com DESAT (UCC21710/ISO5852S), interface de sensores universal (Resolver RDC AD2S1210, Hall, Encoder, Sensorless) e firmware FOC/MTPA/Field Weakening.
+
+### Conexões com o Sistema
+- Orienta os requisitos da Fase 2 de alta tensão em `arquitetura.md`.
+- Conecta-se aos módulos de firmware FOC e hardware KiCad.
+

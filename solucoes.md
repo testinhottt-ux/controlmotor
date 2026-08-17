@@ -287,13 +287,26 @@ netlist_converter.py geda_netlist.net kicad_schematic.kicad_sch
 3. **LM7805** (máx 35V) removido → alimentação via buck integrado do DRV8302 (TPS54160, 60V/1.5A) ou LM2596HV opcional.
 4. **Térmico recalculado**: 48V/30A → ~25W total (P_cond 3.2W×6 ≈ 19.4W + P_sw ~6W), heatsink passivo OK.
 
-**Resultado financeiro**: BOM total **$240 → $84.78** componentes; **~$120/placa** (1-5), ~$102 (10-50), ~$90 (100+).
+---
 
-**Verificação (VERIFIQUE, NÃO AFIRME)**: somas conferidas por script Python em `bom.csv` (TOTAL = 84.78) e tabela markdown da seção 6 do `arquitetura.md` (soma = 84.78). Evidência nos arquivos.
+## Decisão 7: Arquitetura de Controladora 400V Universal (Baseada no Caso Real LetraJota / Uno Elétrico) [DECIDIDO ✅ 2026-08-16]
 
-**Observação**: as menções remanescentes a IPP65R600P7/LM7805 nos docs são apenas notas explicativas das correções, não specs ativas.
+**Contexto**: O projeto do Uno Elétrico (LetraJota / YouTube `qaykfUKs_mc`) evidenciou a dor do mercado: motores OEM de ponta (BYD Dolphin IPMSM) requerem 300V–400V. Como controladoras acessíveis são 72V/96V, o motor perde torque e RPM por Back-EMF ($K_e$), forçando rebobinagem destrutiva e correntes absurdas (1500A).
+
+### Abordagens Avaliadas
+
+| # | Abordagem | Prós | Contras | Veredito |
+|---|-----------|------|---------|----------|
+| 1 | Rebobinar motor para 72V (Abordagem artesanal do vídeo) | Usa controladora de baixa tensão barata | Destrói garantia do motor, corrente de 1500A, cabos gigantes, perdas térmicas $I^2R$ 30× maiores | ❌ Rejeitado |
+| 2 | Usar Inversor OEM trancado (Hacking CAN bus) | Hardware de fábrica | Protocolos criptografados fechados, incompatível com outros motores | ❌ Rejeitado para universal |
+| 3 | **Controladora Inversor 400V Universal Nativa (SiC/IGBT + FOC + Resolver)** | **Compatível com 100% dos motores OEM de fábrica sem rebobinar, corrente de apenas 375A para 200cv, eficiência >97%** | Requer isolamento galvânico HV e chip RDC | ✅ **SELECIONADA (Arquitetura Padrão)** |
+
+**Decisão**:
+- Documentada detalhadamente em `ANALISE_VIDEO_LETRAJOTA_CONTROLADORA_400V_UNIVERSAL.md`.
+- Adotados: Semicondutores 650V/1200V SiC, Gate Drivers com proteção DESAT (UCC21710), Interface Resolver RDC (AD2S1210), FOC vetorial com MTPA e Field Weakening para alta rotação (até 16.000 RPM).
 
 ---
 
-**Última Atualização**: 2026-08-15  
+**Última Atualização**: 2026-08-16  
 **Padrão**: AG3.md Seção 7 (Protocolo de Busca Externa)
+

@@ -10,8 +10,8 @@ import csv
 bom_components = []
 with open('bom.csv', 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f)
-    for row in enumerate(reader):
-        if not row['Referencia'] or row['Referencia'] == 'NOTAS_IMPORTANTES' or not row['Componente']:
+    for row in reader:
+        if not row.get('Referencia') or row.get('Referencia') == 'NOTAS_IMPORTANTES' or not row.get('Componente'):
             continue
         bom_components.append(row)
 
@@ -38,10 +38,10 @@ y_pos = 50
 y_offset = 80
 
 for idx, comp in enumerate(bom_components[:57]):
-    ref = comp[1]['Referencia']
-    name = comp[1]['Componente']
-    value = comp[1]['Valor']
-    comp_type = comp[1]['Tipo']
+    ref = comp['Referencia']
+    name = comp['Componente']
+    value = comp['Valor']
+    comp_type = comp['Tipo']
     
     # Escolher símbolo baseado no tipo
     symbol_map = {

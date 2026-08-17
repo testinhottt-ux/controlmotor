@@ -1,5 +1,38 @@
 # Error Log - Sintomas, Causas e Lições
 
+## [E007] Telemetria Lateral do Acelerador Congelada por TypeError em updateSummaryStrip ✅ RESOLVIDO
+
+**Data**: 2026-08-16 20:53  
+**Severity**: CRÍTICO  
+**Status**: RESOLVIDO
+
+### Sintoma
+Ao mover o pedal de aceleração em `controlmotor-dual.html`, os 12 indicadores do card *"📊 Telemetria (Simulação)"* (RPM, RPM Alvo, Erro, Corrente, Torque, Temperatura, Tensão, Potência, etc.) permaneciam estáticos nos valores iniciais (RPM 0, Corrente 0.0A, Tensão 48V, etc.).
+
+### Causa-Raiz
+Investigado com o navegador real Chromium via Playwright:
+1. `updateChartTelemetry()` chamava `updateSummaryStrip()`.
+2. Em `updateSummaryStrip()`, o código buscava `document.getElementById('statSimVoltageRange')` e `document.getElementById('statSimErrorAvg')`, enquanto os IDs no HTML eram `statSimVoltRange` e `statSimAvgError`.
+3. Ao tentar fazer `.textContent = ...` sobre um nó `null`, o interpretador lançava `TypeError: Cannot set properties of null (setting 'textContent')`, interrompendo o ciclo antes de executar `updateSimulationTelemetryCard()`.
+
+### Correção Permanente
+1. Refatoração de `updateSummaryStrip()` com função auxiliar segura `setText(id, val)` e mapeamento exato dos IDs de HTML:
+   - `statSimPeakRpm`, `statSimAvgCurrent`, `statSimVoltRange`, `statSimMaxTemp`, `statSimAvgError`, `statSimPeakRegen`
+   - `statRealPeakRpm`, `statRealAvgCurrent`, `statRealVoltRange`, `statRealMaxTemp`, `statRealMaxPower`, `statRealAvgTorque`
+2. Disparo instantâneo nos eventos de `input` de `#throttleSim`, `#brakeSim` e `#throttleReal`.
+3. Validação de divisão por zero em `simErrorPct` e modelo físico local contínuo de RPM/Corrente/Torque/Potência.
+
+### Validação
+- `debug_browser_console.py` executou no Chromium real com sweep de 0% a 100% de acelerador em ambos os modos:
+  - 0% → 0 RPM, 0.0A, 48V, 0.0kW
+  - 25% → 821 RPM, 15.3A, 47V, 0.72kW
+  - 50% → 1790 RPM, 25.2A, 46V, 1.17kW
+  - 75% → 2668 RPM, 37.4A, 46V, 1.71kW
+  - 100% → 3762 RPM, 43.9A, 45V, 1.99kW
+  - Erros de página JS capturados: **0** (Lista vazia `[]`).
+
+---
+
 ## [E001] KiCad Version Incompatibility ✅ RESOLVIDO
 
 **Data**: 2026-08-14 17:07  
@@ -416,3 +449,108 @@ python3 -c "import xml.etree.ElementTree as ET; ..."  # FALTANDO: nenhum
 
 ### Lição
 **Todo SVG com `<defs>` + `<use>` precisa de check de referência cruzada**: extrair `id` de todos os elementos e comparar com todos os `href` de `<use>` antes de considerar pronto.
+
+---
+
+## [ERRO 10] TypeError no `generate_kicad_fix.py` ao iterar DictReader com `enumerate()`
+
+**Data**: 2026-08-16  
+**Severity**: ALTO  
+**Status**: RESOLVIDO ✅
+
+### Sintoma
+```
+TypeError: tuple indices must be integers or slices, not str
+File "/home/teste/controlmotor/generate_kicad_fix.py", line 14:
+if not row['Referencia'] or ...
+```
+
+### Causa-Raiz
+Uso incorreto de `for row in enumerate(reader):` transformou cada linha em uma tupla `(idx, dict)`. Acesso direto `row['Referencia']` falhava por tentar indexar tupla com string.
+
+### Correção Permanente
+Substituição por `for row in reader:` e acesso com `.get('Referencia')` defensivo.
+
+### Validação
+```bash
+python3 generate_kicad_fix.py
+# ✅ Lidos 57 componentes | ✅ Arquivo regenerado: schematic.kicad_sch | Exit code: 0
+```
+
+---
+
+## [ERRO 11] SPICE Simulation Matrix Singularity e Shoot-Through em `schematic_fixed.cir`
+
+**Data**: 2026-08-16  
+**Severity**: CRÍTICO  
+**Status**: RESOLVIDO ✅
+
+### Sintoma
+```
+Warning: singular matrix: check node sin
+Error: Transient op failed, timestep too small
+run simulation(s) aborted
+```
+
+### Causa-Raiz
+1. Fontes de Back-EMF declaradas como fontes dependentes `Ephase_u` usando sintaxe de `V` senoidal `SIN(...)`.
+2. Switches high-side e low-side usando a mesma porta de controle `gate_hs_u`, causando shoot-through direto de 400V para o GND ($I = 20.000\text{ A}$).
+3. Fases U, V, W curto-circuitadas entre si no nó `neutral_emf`.
+
+### Correção Permanente
+1. Fontes `Vbemf_u/v/w` independentes com deslocamento de fase de 120° e 240°.
+2. Sinais PWM complementares com dead-time (`Vpwm_hs` e `Vpwm_ls`).
+3. Diodos de corpo `d_body` e snubbers RC em cada fase.
+
+### Validação
+```bash
+ngspice -b schematic_fixed.cir
+# ✅ 15885 pontos de dados simulados sem erros | Exit code: 0
+```
+
+---
+
+## [ERRO 12] Falha de Execução em `test_interface.py` por Ausência de Servidor Local
+
+**Data**: 2026-08-16  
+**Severity**: MÉDIO  
+**Status**: RESOLVIDO ✅
+
+### Sintoma
+`test_interface.py` falhava com exit code 1 e status 403 / ConnectionError ao tentar conectar a `http://127.0.0.1:8000/api/simulate` sem servidor ativo em background.
+
+### Causa-Raiz
+O script de teste assumia que o operador havia iniciado manualmente `python3 sim/server.py` em outro terminal.
+
+### Correção Permanente
+Adicionada função `start_background_server_if_needed()` que detecta se a porta 8000 está ativa; se não estiver, inicia automaticamente o servidor `MotorControllerHandler` em thread daemon em background.
+
+### Validação
+```bash
+python3 test_interface.py
+# ✅ 4/4 testes passaram com 100% de sucesso | Exit code: 0
+```
+
+---
+
+## [ERRO 13] `sim/api_server.py` Inoperante por Dependência Externa Ausente (Flask)
+
+**Data**: 2026-08-16  
+**Severity**: MÉDIO  
+**Status**: RESOLVIDO ✅
+
+### Sintoma
+`sim/api_server.py` falhava com `ModuleNotFoundError: No module named 'flask'`.
+
+### Causa-Raiz
+Acoplamento obrigatório com biblioteca de terceiros `flask` sem fallback nativo.
+
+### Correção Permanente
+Implementado padrão de fallback transparente: se `flask` estiver disponível, usa rotas Flask; caso contrário, executa servidor nativo zero-dependência usando `http.server.HTTPServer` da biblioteca padrão do Python.
+
+### Validação
+```bash
+python3 -c "import sim.api_server; print('Import OK')"
+# ✅ Import OK | Exit code: 0
+```
+

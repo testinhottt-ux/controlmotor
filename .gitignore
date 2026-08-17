@@ -7,7 +7,11 @@ firmware/.pio/
 sim_spice.log
 sim_output.log
 sim_output_new.log
+sim_raw.log
+*.log
 *.sim
+sim/test_cpp
+*.net
 
 # Generated images/pdf/visualizations (regenerable from scripts)
 imagens/
@@ -29,7 +33,11 @@ __pycache__/
 .env
 *token*
 *credencial*
+ag.md
+ag2.md
 ag3.md
 *ag3*
+*ag2*
 HARNESS.md
 harness.md
+*.ods

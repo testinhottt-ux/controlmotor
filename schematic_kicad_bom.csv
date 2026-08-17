@@ -1,1 +1,58 @@
-"Refs","Value","Footprint","Qty","DNP"
+Refs,Value,Footprint,Qty,Description,Supplier,Cost_USD
+U1,240MHz Xtensa,MCU,1,ESP32-WROOM-32E Microcontroller,LCSC,3.5
+U2,3-phase driver 8-60V,IC Gate Driver,1,TI DRV8302 Gate Driver,LCSC,7.72
+Q1-Q3,100V 180A 4.5mOhm,MOSFET,3,IRFB4110 High-Side MOSFET,LCSC,1.5
+Q4-Q6,100V 180A 4.5mOhm,MOSFET,3,IRFB4110 Low-Side MOSFET,LCSC,1.5
+C1,470uF 450V,Capacitor,2,Capacitor Bank,LCSC,2.5
+C_boot1,10uF 50V,Capacitor,1,Bootstrap Cap Phase U,LCSC,0.15
+C_boot2,10uF 50V,Capacitor,1,Bootstrap Cap Phase V,LCSC,0.15
+C_boot3,10uF 50V,Capacitor,1,Bootstrap Cap Phase W,LCSC,0.15
+Cfilter_1,100uF 10V,Capacitor,1,MCU Decoupling,LCSC,0.3
+Cfilter_2,100nF 16V,Capacitor,4,MCU Bypass,LCSC,0.01
+Cfilter_adc,10nF 16V,Capacitor,1,ADC Filter,LCSC,0.01
+Rgate_u,10 Ohm 1/4W,Resistor,3,Gate Series Resistor,LCSC,0.02
+Rgate_v,10 Ohm 1/4W,Resistor,3,Gate Series Resistor,LCSC,0.02
+Rgate_w,10 Ohm 1/4W,Resistor,3,Gate Series Resistor,LCSC,0.02
+Rgate_ls_u,10k 1/4W,Resistor,1,Gate Pull-Down,LCSC,0.01
+Rgate_ls_v,10k 1/4W,Resistor,1,Gate Pull-Down,LCSC,0.01
+Rgate_ls_w,10k 1/4W,Resistor,1,Gate Pull-Down,LCSC,0.01
+Rdamp_u,100 Ohm 0603,Resistor,3,EMI Damping Ferrite,LCSC,0.05
+Rdamp_v,100 Ohm 0603,Resistor,3,EMI Damping Ferrite,LCSC,0.05
+Rdamp_w,100 Ohm 0603,Resistor,3,EMI Damping Ferrite,LCSC,0.05
+Rdischarge,1M 5W,Resistor,1,Safety Discharge,LCSC,0.2
+R_shunt_u,0.001 Ohm 2% 3W,Resistor,1,Current Sense Shunt,LCSC,1.5
+R_shunt_v,0.001 Ohm 2% 3W,Resistor,1,Current Sense Shunt,LCSC,1.5
+R_shunt_w,0.001 Ohm 2% 3W,Resistor,1,Current Sense Shunt,LCSC,1.5
+R_temperature_1,10k 1% B=3470,Thermistor,1,NTC Thermistor Motor,LCSC,0.15
+R_temperature_2,10k 1% B=3470,Thermistor,1,NTC Thermistor Driver,LCSC,0.15
+Lvcc,10uH,Inductor,1,LDO Supply Inductor,LCSC,0.1
+Lfilter_u,1uH 600MHz,Ferrite Bead,1,Ferrite Bead Phase U,LCSC,0.05
+Lfilter_v,1uH 600MHz,Ferrite Bead,1,Ferrite Bead Phase V,LCSC,0.05
+Lfilter_w,1uH 600MHz,Ferrite Bead,1,Ferrite Bead Phase W,LCSC,0.05
+D_bootstrap_u,3A 200V Ultra Fast,Diode,1,Bootstrap Diode,LCSC,0.1
+D_bootstrap_v,3A 200V Ultra Fast,Diode,1,Bootstrap Diode,LCSC,0.1
+D_bootstrap_w,3A 200V Ultra Fast,Diode,1,Bootstrap Diode,LCSC,0.1
+D_tvs_1,50V 10A Bidirectional,TVS Diode,1,TVS Protection Diode,LCSC,0.3
+D_tvs_2,50V 10A Bidirectional,TVS Diode,1,TVS Protection Diode,LCSC,0.3
+Hall_A,A3144,IC Sensor,1,Hall Effect Sensor,AliExpress,0.1
+Hall_B,A3144,IC Sensor,1,Hall Effect Sensor,AliExpress,0.1
+Hall_C,A3144,IC Sensor,1,Hall Effect Sensor,AliExpress,0.1
+C_debounce_hall,10nF 16V,Capacitor,3,Hall Debounce Cap,LCSC,0.01
+Fuse1,50A Automotive,Fuse,1,Main Fuse,AliExpress,1.5
+Connector_XT60,XT60 (par),Connector,1,Power Input Connector,AliExpress,0.4
+Connector_motor_u,M4 Brass,Hardware,1,Motor Phase U Stud,AliExpress,0.2
+Connector_motor_v,M4 Brass,Hardware,1,Motor Phase V Stud,AliExpress,0.2
+Connector_motor_w,M4 Brass,Hardware,1,Motor Phase W Stud,AliExpress,0.2
+Connector_aux,JST PH 2.0 4-pin,Connector,1,Auxiliary Header,LCSC,0.2
+Connector_debug,Micro-USB or JST SH,Connector,1,Debug UART,AliExpress,0.5
+PCB_Prototype,FR-4 2oz Copper,PCB,1,4-layer PCB,JLCPCB,30
+Heatsink_main,300x200x10mm,Heatsink,1,Aluminum Backplate,AliExpress,8
+Thermal_paste,3W/mK,Thermal Interface,1,Thermal Compound,AliExpress,1.5
+Cable_power,6mm2 silicone 400V rated,Wire,1,Main Power Cable,AliExpress,0.6
+Cable_motor,6mm2 shielded,Wire,1,Motor Phase Cables,AliExpress,1.2
+Shrink_tube,Assorted 1mm-5mm,Hardware,1,Heat Shrink Tubing,AliExpress,0.5
+Fasteners,Stainless,Hardware,20,M4 Bolts + Washers + Nuts,AliExpress,0.05
+Silicone_sealant,Silicone,Adhesive,1,Potting/Sealant,AliExpress,4
+Buck_in,LM2596HV 60V,IC Power Mgmt,1,Buck Regulator 12V (opcional),AliExpress,1.5
+Capacitor_5V,100uF 16V,Capacitor,1,Bulk Cap 5V,LCSC,0.1
+Resistor_divider_vdc,100k 1% 1/4W pair,Resistor,1,Voltage Divider Resistors,LCSC,0.02

@@ -8,8 +8,17 @@ import json
 import os
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from bldc_full_simulator import SimConfig, run_simulation
-from motor_models import MotorCatalog, BatteryCatalog
+
+# Garantir que o diretório sim/ esteja no sys.path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    from bldc_full_simulator import SimConfig, run_simulation
+    from motor_models import MotorCatalog, BatteryCatalog
+except ImportError:
+    from sim.bldc_full_simulator import SimConfig, run_simulation
+    from sim.motor_models import MotorCatalog, BatteryCatalog
+
 import threading
 import time
 

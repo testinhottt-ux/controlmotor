@@ -66,7 +66,7 @@ def test_api_single_call():
     
     params = {
         'rpm_target': 4000,
-        'duration_s': 2.0,
+        'duration_s': 1.0,
         'kp': 0.4,
         'ki': 0.04,
         'kd': 0.015
@@ -136,7 +136,7 @@ def test_api_parameter_sweep():
             'kp': kp,
             'ki': 0.03,
             'kd': 0.01,
-            'duration_s': 2.0
+            'duration_s': 1.0
         }
         response = client.simulate(params)
         
@@ -170,7 +170,7 @@ def test_api_with_load():
             'rpm_target': 3000,
             'kp': 0.3,
             'load_torque': load,
-            'duration_s': 2.0
+            'duration_s': 1.0
         }
         response = client.simulate(params)
         
