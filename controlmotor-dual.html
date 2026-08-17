@@ -610,6 +610,146 @@
                 </div>
             </div>
 
+            <!-- Advanced Graphical Telemetry Monitor (Simulação) -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="chart-header-bar">
+                    <div class="card-title" style="margin-bottom: 0;">📈 Monitoramento Gráfico Multivariável em Tempo Real</div>
+                    <div class="chart-actions-wrap">
+                        <select id="timeWindowSim" class="time-select" title="Janela de Tempo">
+                            <option value="30">⏱️ Janela: 30s</option>
+                            <option value="60" selected>⏱️ Janela: 60s</option>
+                            <option value="120">⏱️ Janela: 120s</option>
+                            <option value="300">⏱️ Janela: 300s</option>
+                        </select>
+                        <button class="chart-action-btn" id="btnPauseChartSim" title="Pausar / Retomar Gráfico">⏸️ Pausar</button>
+                        <button class="chart-action-btn" id="btnClearChartSim" title="Limpar Histórico">🧹 Limpar</button>
+                        <button class="chart-action-btn" id="btnExportCsvSim" title="Exportar dados para planilha CSV">📥 CSV</button>
+                        <button class="chart-action-btn" id="btnExportPngSim" title="Download imagem do gráfico">📸 PNG</button>
+                    </div>
+                </div>
+
+                <!-- Presets Bar -->
+                <div class="chart-header-bar" style="margin-bottom: 12px;">
+                    <div class="chart-presets-wrap">
+                        <span style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-right: 4px;">Filtros Rápidos:</span>
+                        <button class="chart-preset-btn active" data-target="sim" data-preset="master">🌟 Master / Geral</button>
+                        <button class="chart-preset-btn" data-target="sim" data-preset="threephase">⚡ Trifásico (Ia, Ib, Ic, V)</button>
+                        <button class="chart-preset-btn" data-target="sim" data-preset="energy">🔋 Energia & Bateria</button>
+                        <button class="chart-preset-btn" data-target="sim" data-preset="thermal">🔥 Térmico & Proteção</button>
+                        <button class="chart-preset-btn" data-target="sim" data-preset="foc">⚙️ Dinâmica FOC / Rastreamento</button>
+                        <button class="chart-preset-btn" data-target="sim" data-preset="all">🌈 Todas as Séries</button>
+                    </div>
+                </div>
+
+                <!-- Channel Selector Pills -->
+                <div class="channels-panel">
+                    <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Canais Monitorados (clique para ligar/desligar individualmente):</div>
+                    <div class="channels-grid" id="channelsSimGrid">
+                        <!-- Gerado dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Chart Canvas Container -->
+                <div class="chart-container">
+                    <canvas id="chartSim"></canvas>
+                </div>
+
+                <!-- Live Summary Statistics Strip -->
+                <div class="chart-stats-strip">
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Velocidade Máxima (Pico)</div>
+                        <div class="chart-stat-val" id="statSimPeakRpm">0 rpm</div>
+                    </div>
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Corrente RMS Média</div>
+                        <div class="chart-stat-val" id="statSimAvgCurrent">0.0 A</div>
+                    </div>
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Tensão Barramento (Min/Max)</div>
+                        <div class="chart-stat-val" id="statSimVoltRange">-- V</div>
+                    </div>
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Temperatura Máx. Motor</div>
+                        <div class="chart-stat-val" id="statSimMaxTemp">25 °C</div>
+                    </div>
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Erro Médio Rastreamento</div>
+                        <div class="chart-stat-val" id="statSimAvgError">0.00 %</div>
+                    </div>
+                    <div class="chart-stat-card">
+                        <div class="chart-stat-label">Potência Regenerada (Pico)</div>
+                        <div class="chart-stat-val" id="statSimPeakRegen">0 W</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tuning Parameters -->
+            <div class="card" style="margin-bottom: 30px;">
+                <div class="card-title">⚙️ Tuning Parameters (Controladora PID)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Column 1: PID Gains -->
+                    <div>
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Kp (Proporcional)</span>
+                                <span class="param-value" id="displayKpLive">0.30</span>
+                            </div>
+                            <input type="range" id="sliderKpLive" class="param-slider" min="0.01" max="2.0" step="0.01" value="0.30">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Resposta rápida. ↑ = mais agressivo</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Ki (Integral)</span>
+                                <span class="param-value" id="displayKiLive">0.03</span>
+                            </div>
+                            <input type="range" id="sliderKiLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.03">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Elimina erro em regime. ↑ = mais integral</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">Kd (Derivativa)</span>
+                                <span class="param-value" id="displayKdLive">0.01</span>
+                            </div>
+                            <input type="range" id="sliderKdLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.01">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Amortecimento. ↑ = menos overshoot</div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Setpoints & Config -->
+                    <div>
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">RPM Target</span>
+                                <span class="param-value" id="displayRpmTarget">3000</span>
+                            </div>
+                            <input type="range" id="sliderRpmTarget" class="param-slider" min="1000" max="7000" step="100" value="3000">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Alvo de velocidade do motor</div>
+                        </div>
+
+                        <div class="param-group">
+                            <div class="param-header">
+                                <span class="param-label">AutoLearn Duration (s)</span>
+                                <span class="param-value" id="displayAutoLearnDuration">2.0</span>
+                            </div>
+                            <input type="range" id="sliderAutoLearnDuration" class="param-slider" min="0.5" max="5.0" step="0.5" value="2.0">
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Tempo de sintonia automática</div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                            <button style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnResetParams">🔄 Reset Padrão</button>
+                            <button style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnApplyParams">✓ Aplicar + Salvar</button>
+                            <button style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; grid-column: 1 / -1;" id="btnSaveProfile">💾 Salvar Perfil (auto-learn não precisa repetir)</button>
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 8px; text-align: center;">
+                            💡 O Auto-Learn roda uma única vez. Os ganhos ficam salvos e são recarregados ao abrir a página.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Módulos Simulados -->
             <div class="card" style="margin-bottom: 30px;">
                 <div class="card-title">🔧 Módulos Simulados (I/O em Tempo Real)</div>
@@ -754,146 +894,6 @@
                              <span class="io-value" id="safetyWarnings" style="font-size: 12px; line-height: 1.4; text-align: right;">✅ Parâmetros na faixa segura</span>
                          </div>
                      </div>
-                </div>
-            </div>
-
-            <!-- Tuning Parameters -->
-            <div class="card" style="margin-bottom: 30px;">
-                <div class="card-title">⚙️ Tuning Parameters (Controladora PID)</div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <!-- Column 1: PID Gains -->
-                    <div>
-                        <div class="param-group">
-                            <div class="param-header">
-                                <span class="param-label">Kp (Proporcional)</span>
-                                <span class="param-value" id="displayKpLive">0.30</span>
-                            </div>
-                            <input type="range" id="sliderKpLive" class="param-slider" min="0.01" max="2.0" step="0.01" value="0.30">
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Resposta rápida. ↑ = mais agressivo</div>
-                        </div>
-
-                        <div class="param-group">
-                            <div class="param-header">
-                                <span class="param-label">Ki (Integral)</span>
-                                <span class="param-value" id="displayKiLive">0.03</span>
-                            </div>
-                            <input type="range" id="sliderKiLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.03">
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Elimina erro em regime. ↑ = mais integral</div>
-                        </div>
-
-                        <div class="param-group">
-                            <div class="param-header">
-                                <span class="param-label">Kd (Derivativa)</span>
-                                <span class="param-value" id="displayKdLive">0.01</span>
-                            </div>
-                            <input type="range" id="sliderKdLive" class="param-slider" min="0.001" max="0.5" step="0.001" value="0.01">
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Amortecimento. ↑ = menos overshoot</div>
-                        </div>
-                    </div>
-
-                    <!-- Column 2: Setpoints & Config -->
-                    <div>
-                        <div class="param-group">
-                            <div class="param-header">
-                                <span class="param-label">RPM Target</span>
-                                <span class="param-value" id="displayRpmTarget">3000</span>
-                            </div>
-                            <input type="range" id="sliderRpmTarget" class="param-slider" min="1000" max="7000" step="100" value="3000">
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Alvo de velocidade do motor</div>
-                        </div>
-
-                        <div class="param-group">
-                            <div class="param-header">
-                                <span class="param-label">AutoLearn Duration (s)</span>
-                                <span class="param-value" id="displayAutoLearnDuration">2.0</span>
-                            </div>
-                            <input type="range" id="sliderAutoLearnDuration" class="param-slider" min="0.5" max="5.0" step="0.5" value="2.0">
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Tempo de sintonia automática</div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                            <button style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnResetParams">🔄 Reset Padrão</button>
-                            <button style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;" id="btnApplyParams">✓ Aplicar + Salvar</button>
-                            <button style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; grid-column: 1 / -1;" id="btnSaveProfile">💾 Salvar Perfil (auto-learn não precisa repetir)</button>
-                        </div>
-                        <div style="font-size: 12px; color: #94a3b8; margin-top: 8px; text-align: center;">
-                            💡 O Auto-Learn roda uma única vez. Os ganhos ficam salvos e são recarregados ao abrir a página.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Advanced Graphical Telemetry Monitor (Simulação) -->
-            <div class="card" style="margin-bottom: 30px;">
-                <div class="chart-header-bar">
-                    <div class="card-title" style="margin-bottom: 0;">📈 Monitoramento Gráfico Multivariável em Tempo Real</div>
-                    <div class="chart-actions-wrap">
-                        <select id="timeWindowSim" class="time-select" title="Janela de Tempo">
-                            <option value="30">⏱️ Janela: 30s</option>
-                            <option value="60" selected>⏱️ Janela: 60s</option>
-                            <option value="120">⏱️ Janela: 120s</option>
-                            <option value="300">⏱️ Janela: 300s</option>
-                        </select>
-                        <button class="chart-action-btn" id="btnPauseChartSim" title="Pausar / Retomar Gráfico">⏸️ Pausar</button>
-                        <button class="chart-action-btn" id="btnClearChartSim" title="Limpar Histórico">🧹 Limpar</button>
-                        <button class="chart-action-btn" id="btnExportCsvSim" title="Exportar dados para planilha CSV">📥 CSV</button>
-                        <button class="chart-action-btn" id="btnExportPngSim" title="Download imagem do gráfico">📸 PNG</button>
-                    </div>
-                </div>
-
-                <!-- Presets Bar -->
-                <div class="chart-header-bar" style="margin-bottom: 12px;">
-                    <div class="chart-presets-wrap">
-                        <span style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-right: 4px;">Filtros Rápidos:</span>
-                        <button class="chart-preset-btn active" data-target="sim" data-preset="master">🌟 Master / Geral</button>
-                        <button class="chart-preset-btn" data-target="sim" data-preset="threephase">⚡ Trifásico (Ia, Ib, Ic, V)</button>
-                        <button class="chart-preset-btn" data-target="sim" data-preset="energy">🔋 Energia & Bateria</button>
-                        <button class="chart-preset-btn" data-target="sim" data-preset="thermal">🔥 Térmico & Proteção</button>
-                        <button class="chart-preset-btn" data-target="sim" data-preset="foc">⚙️ Dinâmica FOC / Rastreamento</button>
-                        <button class="chart-preset-btn" data-target="sim" data-preset="all">🌈 Todas as Séries</button>
-                    </div>
-                </div>
-
-                <!-- Channel Selector Pills -->
-                <div class="channels-panel">
-                    <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Canais Monitorados (clique para ligar/desligar individualmente):</div>
-                    <div class="channels-grid" id="channelsSimGrid">
-                        <!-- Gerado dinamicamente -->
-                    </div>
-                </div>
-
-                <!-- Chart Canvas Container -->
-                <div class="chart-container">
-                    <canvas id="chartSim"></canvas>
-                </div>
-
-                <!-- Live Summary Statistics Strip -->
-                <div class="chart-stats-strip">
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Velocidade Máxima (Pico)</div>
-                        <div class="chart-stat-val" id="statSimPeakRpm">0 rpm</div>
-                    </div>
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Corrente RMS Média</div>
-                        <div class="chart-stat-val" id="statSimAvgCurrent">0.0 A</div>
-                    </div>
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Tensão Barramento (Min/Max)</div>
-                        <div class="chart-stat-val" id="statSimVoltRange">-- V</div>
-                    </div>
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Temperatura Máx. Motor</div>
-                        <div class="chart-stat-val" id="statSimMaxTemp">25 °C</div>
-                    </div>
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Erro Médio Rastreamento</div>
-                        <div class="chart-stat-val" id="statSimAvgError">0.00 %</div>
-                    </div>
-                    <div class="chart-stat-card">
-                        <div class="chart-stat-label">Potência Regenerada (Pico)</div>
-                        <div class="chart-stat-val" id="statSimPeakRegen">0 W</div>
-                    </div>
                 </div>
             </div>
         </div>
