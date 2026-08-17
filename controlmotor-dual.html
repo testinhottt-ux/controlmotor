@@ -910,16 +910,18 @@
                         <input type="range" id="throttleReal" class="slider" min="0" max="100" value="0" step="1">
                     </div>
 
-                    <div class="button-group">
-                        <button class="btn-primary" id="btnStartReal">▶ Conectar</button>
-                        <button class="btn-secondary" id="btnAutoLearnReal">🤖 Calibrar</button>
+                    <div class="button-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button class="btn-primary" id="btnConnectBle" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">📶 Conectar BLE</button>
+                        <button class="btn-secondary" id="btnConnectUsb">🔌 Conectar USB</button>
+                        <button class="btn-secondary" id="btnStartReal">⚡ Modo Demo</button>
                         <button class="btn-danger" id="btnStopReal">⊘ Desconectar</button>
                     </div>
 
                     <div class="status-section">
                         <div class="status-text">
                             <strong>Conexão:</strong> <span id="realStatus">Desconectado</span><br>
-                            <strong>Firmware:</strong> <span id="firmwareVersion">--</span><br>
+                            <strong>Interface:</strong> <span id="realInterface">Bluetooth / USB</span><br>
+                            <strong>Firmware:</strong> <span id="firmwareVersion">v4.0 (FOC/BLE)</span><br>
                             <strong>Porta:</strong> <span id="comPort">--</span>
                         </div>
                     </div>
@@ -1890,6 +1892,93 @@
             });
         }
 
+        // ==================== CONEXÃO BLUETOOTH BLE (ESP32 DevKit) ====================
+        const NUS_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const NUS_RX_UUID      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const NUS_TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+        let bleDevice = null;
+        let bleRxChar = null;
+        let bleTxChar = null;
+
+        const btnConnectBleEl = document.getElementById('btnConnectBle');
+        if (btnConnectBleEl) {
+            btnConnectBleEl.addEventListener('click', async () => {
+                if (!navigator.bluetooth) {
+                    alert('Seu navegador não suporta Web Bluetooth. Use o Google Chrome ou Microsoft Edge.');
+                    return;
+                }
+                try {
+                    document.getElementById('realStatus').textContent = 'Buscando ESP32...';
+                    bleDevice = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { namePrefix: 'MotorControl' },
+                            { namePrefix: 'ESP32' }
+                        ],
+                        optionalServices: [NUS_SERVICE_UUID, '180d0000-0000-0000-0000-000000000000', '180e0000-0000-0000-0000-000000000000']
+                    });
+
+                    const server = await bleDevice.gatt.connect();
+                    const service = await server.getPrimaryService(NUS_SERVICE_UUID);
+                    bleRxChar = await service.getCharacteristic(NUS_RX_UUID);
+                    bleTxChar = await service.getCharacteristic(NUS_TX_UUID);
+
+                    await bleTxChar.startNotifications();
+                    bleTxChar.addEventListener('characteristicvaluechanged', (e) => {
+                        try {
+                            const decoder = new TextDecoder('utf-8');
+                            const jsonStr = decoder.decode(e.target.value);
+                            const pt = JSON.parse(jsonStr);
+                            pushTelemetryPoint('real', pt);
+                            updateChartTelemetry('real');
+                            updateRealTelemetryCard(pt);
+                        } catch (err) {
+                            console.warn('Erro ao decodificar telemetria BLE:', err);
+                        }
+                    });
+
+                    state.realConnected = true;
+                    state.realPaused = false;
+                    document.getElementById('realStatus').textContent = 'BLE Conectado ✅';
+                    document.getElementById('realInterface').textContent = 'Bluetooth Low Energy (BLE)';
+                    document.getElementById('comPort').textContent = bleDevice.name || 'ESP32-DevKit';
+                    btnConnectBleEl.textContent = '📶 BLE Ativo';
+                } catch (error) {
+                    console.error('Erro ao conectar BLE:', error);
+                    document.getElementById('realStatus').textContent = 'Falha Conexão BLE';
+                }
+            });
+        }
+
+        // ==================== CONEXÃO USB SERIAL (ESP32 DevKit) ====================
+        let serialPort = null;
+        let serialReader = null;
+
+        const btnConnectUsbEl = document.getElementById('btnConnectUsb');
+        if (btnConnectUsbEl) {
+            btnConnectUsbEl.addEventListener('click', async () => {
+                if (!navigator.serial) {
+                    alert('Seu navegador não suporta WebSerial. Use o Google Chrome ou Microsoft Edge.');
+                    return;
+                }
+                try {
+                    serialPort = await navigator.serial.requestPort();
+                    await serialPort.open({ baudRate: 115200 });
+
+                    state.realConnected = true;
+                    state.realPaused = false;
+                    document.getElementById('realStatus').textContent = 'USB Serial Conectado ✅';
+                    document.getElementById('realInterface').textContent = 'USB-UART (115200 baud)';
+                    document.getElementById('comPort').textContent = 'USB DevKit Port';
+                    btnConnectUsbEl.textContent = '🔌 USB Ativo';
+                } catch (error) {
+                    console.error('Erro ao conectar USB Serial:', error);
+                    document.getElementById('realStatus').textContent = 'Falha USB Serial';
+                }
+            });
+        }
+
+        // ==================== MODO DEMO / SIMULAÇÃO DE HARDWARE ====================
         const btnStartRealEl = document.getElementById('btnStartReal');
         if (btnStartRealEl) {
             btnStartRealEl.addEventListener('click', () => {
@@ -1897,9 +1986,10 @@
                 state.realPaused = false;
                 state.realHistStart = null;
                 state.realHistory = [];
-                document.getElementById('realStatus').textContent = 'Conectado ✅';
-                document.getElementById('firmwareVersion').textContent = 'v1.2.4 (CAN/FOC)';
-                document.getElementById('comPort').textContent = 'USB-Serial (ttyUSB0)';
+                document.getElementById('realStatus').textContent = 'Demo Hardware ✅';
+                document.getElementById('realInterface').textContent = 'Mock Hardware Driver';
+                document.getElementById('firmwareVersion').textContent = 'v4.0 (DevKit FOC/BLE)';
+                document.getElementById('comPort').textContent = 'Virtual DevKit';
                 updateChartTelemetry('real');
                 runRealModeLoop();
             });
@@ -1916,6 +2006,8 @@
                 const disp = document.getElementById('throttleDisplayReal');
                 if (disp) disp.textContent = '0';
                 document.getElementById('realStatus').textContent = 'Desconectado';
+                if (btnConnectBleEl) btnConnectBleEl.textContent = '📶 Conectar BLE';
+                if (btnConnectUsbEl) btnConnectUsbEl.textContent = '🔌 Conectar USB';
                 runRealModeLoop();
             });
         }
