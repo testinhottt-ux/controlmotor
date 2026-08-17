@@ -29,137 +29,31 @@ class MotorControllerHandler(BaseHTTPRequestHandler):
         """Handle CORS preflight requests"""
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
     
+    def do_HEAD(self):
+        """Handle HEAD requests like GET"""
+        self.do_GET()
+    
     def do_GET(self):
-        """GET / — Show API documentation"""
-        if self.path == '/':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            html = """<!DOCTYPE html>
-<html>
-<head>
-    <title>Motor Controller API</title>
-    <style>
-        body { font-family: monospace; margin: 20px; }
-        .endpoint { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
-        pre { background: #222; color: #0f0; padding: 10px; overflow-x: auto; }
-    </style>
-</head>
-<body>
-    <h1>🚗 Motor Controller Simulator API</h1>
-    
-    <h2>Available Endpoints</h2>
-    
-    <div class="endpoint">
-        <h3>POST /api/simulate</h3>
-        <p>Run single simulation with injected parameters</p>
-        <pre>{
-  "throttle_percent": 50,      # 0-100 (accelerator pedal)
-  "duration_s": 3.0,           # simulation time
-  "kp": 0.5,                   # P gain (0.01-5)
-  "ki": 0.05,                  # I gain (0.001-1)
-  "kd": 0.02,                  # D gain (0.001-0.5)
-  "load_torque": 0.5,          # N·m (0-2)
-  "autolearn_enabled": true,   # enable auto-tuning
-  "autolearn_duration_s": 1.0, # tuning time
-  "ambient_temp_c": 25         # °C (0-100)
-}</pre>
-        <p><strong>Example:</strong></p>
-        <pre>curl -X POST http://localhost:8000/api/simulate \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "throttle_percent": 75,
-    "kp": 0.5,
-    "load_torque": 0.5
-  }'</pre>
-    </div>
-    
-    <div class="endpoint">
-        <h3>GET /api/status</h3>
-        <p>Get server status and last simulation results</p>
-        <pre>curl http://localhost:8000/api/status</pre>
-    </div>
-    
-    <div class="endpoint">
-        <h3>POST /api/simulate_batch</h3>
-        <p>Run multiple simulations in sequence</p>
-        <pre>{
-  "simulations": [
-    {"throttle_percent": 25, "kp": 0.3},
-    {"throttle_percent": 50, "kp": 0.5},
-    {"throttle_percent": 75, "kp": 0.7}
-  ]
-}</pre>
-    </div>
-    
-    <h2>Response Format</h2>
-    <pre>{
-  "status": "success",
-  "config": {
-    "throttle_percent": 50,
-    "kp": 0.5,
-    "...": "..."
-  },
-  "summary": {
-    "final_rpm": 3999.3,
-    "target_rpm": 4000,
-    "error_percent": 0.02,
-    "converged": true,
-    "peak_current": 45.2,
-    "peak_temp": 42.1,
-    "final_kp": 0.5,
-    "final_ki": 0.05,
-    "final_kd": 0.02
-  }
-}</pre>
+        """GET request handler — serve HTML dashboard, API endpoints, and static files"""
+        clean_path = self.path.split('?')[0]
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    <h2>Test Examples</h2>
-    <h3>1. Basic Throttle Test (50%)</h3>
-    <pre>curl -X POST http://localhost:8000/api/simulate -H "Content-Type: application/json" -d '{
-  "throttle_percent": 50,
-  "duration_s": 2.0
-}'</pre>
+        if clean_path in ['/', '/index.html', '/controlmotor-dual.html']:
+            html_path = os.path.join(project_root, 'controlmotor-dual.html')
+            if os.path.exists(html_path):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                with open(html_path, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
 
-    <h3>2. With Auto-Learning</h3>
-    <pre>curl -X POST http://localhost:8000/api/simulate -H "Content-Type: application/json" -d '{
-  "throttle_percent": 50,
-  "duration_s": 3.0,
-  "autolearn_enabled": true,
-  "autolearn_duration_s": 1.0
-}'</pre>
-
-    <h3>3. With Custom Gains + Load</h3>
-    <pre>curl -X POST http://localhost:8000/api/simulate -H "Content-Type: application/json" -d '{
-  "throttle_percent": 75,
-  "kp": 0.6,
-  "ki": 0.06,
-  "kd": 0.03,
-  "load_torque": 0.8,
-  "duration_s": 2.5
-}'</pre>
-
-    <h3>4. Batch Test (Multiple RPMs)</h3>
-    <pre>curl -X POST http://localhost:8000/api/simulate_batch -H "Content-Type: application/json" -d '{
-  "simulations": [
-    {"throttle_percent": 25, "kp": 0.3},
-    {"throttle_percent": 50, "kp": 0.5},
-    {"throttle_percent": 75, "kp": 0.7},
-    {"throttle_percent": 100, "kp": 0.8}
-  ]
-}'</pre>
-
-    <hr>
-    <p><strong>Server Status:</strong> <span style="color: green;">✓ Running</span></p>
-</body>
-</html>"""
-            self.wfile.write(html.encode())
-        elif self.path == '/api/status':
+        if clean_path == '/api/status':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -167,18 +61,21 @@ class MotorControllerHandler(BaseHTTPRequestHandler):
             
             response = {
                 'status': 'running',
-                'server': 'Motor Controller Simulator',
-                'version': '2.0',
+                'server': 'Motor Controller Simulator & Dashboard Server',
+                'version': '4.0',
                 'endpoints': [
-                    'GET  /',
+                    'GET  / (Dashboard Web UI)',
+                    'GET  /controlmotor-dual.html',
                     'GET  /api/status',
                     'GET  /api/motors',
                     'GET  /api/batteries',
+                    'GET  /api/profile',
                     'POST /api/simulate',
                     'POST /api/simulate_batch'
                 ]
             }
             self.wfile.write(json.dumps(response, indent=2).encode())
+            return
         
         elif self.path == '/api/motors':
             """List available motors"""
@@ -209,12 +106,33 @@ class MotorControllerHandler(BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             
-            profile = _load_profile()
-            self.wfile.write(json.dumps({'status': 'success', 'profile': profile}, indent=2).encode())
-        
-        else:
-            self.send_response(404)
+        # Arquivos estáticos (SVG, PNG, JS, CSS, HTML, CSV)
+        rel_path = clean_path.lstrip('/')
+        safe_path = os.path.normpath(os.path.join(project_root, rel_path))
+        if safe_path.startswith(project_root) and os.path.isfile(safe_path):
+            ext = os.path.splitext(safe_path)[1].lower()
+            mime_types = {
+                '.html': 'text/html; charset=utf-8',
+                '.svg': 'image/svg+xml',
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.js': 'application/javascript',
+                '.css': 'text/css',
+                '.json': 'application/json',
+                '.csv': 'text/csv'
+            }
+            content_type = mime_types.get(ext, 'application/octet-stream')
+            self.send_response(200)
+            self.send_header('Content-type', content_type)
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
+            with open(safe_path, 'rb') as f:
+                self.wfile.write(f.read())
+            return
+
+        self.send_response(404)
+        self.end_headers()
     
     def do_POST(self):
         """POST requests — run simulations"""
@@ -427,7 +345,7 @@ class MotorControllerHandler(BaseHTTPRequestHandler):
 
 def run_server(port=8000):
     """Start the HTTP server"""
-    server_address = ('127.0.0.1', port)
+    server_address = ('0.0.0.0', port)
     httpd = HTTPServer(server_address, MotorControllerHandler)
     
     print("=" * 70)
